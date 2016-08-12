@@ -1,0 +1,29 @@
+nginx:
+  image: tutum/nginx
+  ports:
+    - "8080:80"
+  links:
+    - phpfpm
+    - mysql
+  volumes:
+    - ./nginx/default:/etc/nginx/sites-available/default
+    - ./nginx/default:/etc/nginx/sites-enabled/default
+    - ./logs/nginx-error.log:/var/log/nginx/error.log
+    - ./logs/nginx-access.log:/var/log/nginx/access.log
+phpfpm:
+  image: php-fpm
+  ports:
+    - "9000:9000"
+  links:
+    - mysql
+  volumes:
+    - ./src:/srv/fiflet
+mysql:
+  image: mysql
+  ports:
+    - 3306
+  volumes:
+    - ./data:/var/lib/mysql
+    - ./src:/srv/fiflet
+  environment:
+    MYSQL_ROOT_PASSWORD: cicero
