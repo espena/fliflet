@@ -10,11 +10,11 @@
     }
     public function doPreOperations() {
       $this->mApp->doPreOperations();
-      header( "header('Content-Type: application/json');" );
     }
     public function tpl( $idt ) {
       switch( $idt ) {
         case 'main':
+          header('Content-Type: application/json');
           echo( $this->getJson() );
           break;
         default:

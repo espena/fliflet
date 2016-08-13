@@ -66,16 +66,33 @@
                 substr( $dd_mm_yyyy, 0, 2 ) );
     }
     public function getOverview() {
-      $data = array();
+      $dataJour = array();
+      $dataPub = array();
+      $labels = array();
+      $longNames = array();
       $this->mDb->multi_query( "CALL statsOverview()" );
       if( $res = $this->getFirstResult() ) {
         while( $row = $res->fetch_assoc() ) {
-          $data[] = $row;
+          $labels[] = $row[ 'forkortelse' ];
+          $longNames[ $row[ 'forkortelse' ] ] = $row[ 'navn' ];
+          $dataJour[] = $row[ 'dager_jour' ];
+          $dataPub[] = $row[ 'dager_pub' ];
         }
         $res->free();
       }
       $this->flushResults();
-      return $data;
+      return array(
+        'labels' => $labels,
+        'longnames' => $longNames,
+        'datasets' => array(
+                        array(
+                          'label' => 'Journalføring',
+                          'backgroundColor' => 'rgba(151,187,205,0.5)',
+                          'data' => $dataJour ),
+                        array(
+                          'label' => 'Publisering',
+                          'backgroundColor' => 'rgba(220,220,220,0.5)',
+                          'data' => $dataPub ) ) );
     }
     private function getFirstResult() {
       $res = null;

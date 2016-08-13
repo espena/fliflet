@@ -29,10 +29,11 @@ CREATE PROCEDURE statsOverview()
 BEGIN
   SELECT
     s.navn,
-    CONCAT( YEAR( pubdato ), '-', LPAD( MONTH( pubdato ), 2, '0' ) ) AS periode,
+    j.virksomhet AS forkortelse,
     COUNT( j.id_journal ) AS antall_dok,
     ROUND( AVG( DATEDIFF( j.jourdato, j.dokdato ) ) ) AS dager_jour,
-    ROUND( AVG( DATEDIFF( j.pubdato, j.dokdato ) ) ) AS dager_pub
+    ROUND( AVG( DATEDIFF( j.pubdato, j.dokdato ) ) ) AS dager_pub,
+    GREATEST( ROUND( AVG( DATEDIFF( j.jourdato, j.dokdato ) ) ), ROUND( AVG( DATEDIFF( j.pubdato, j.dokdato ) ) ) ) AS sortparam
   FROM
     supplier s
       INNER JOIN
@@ -44,12 +45,11 @@ BEGIN
     j.jourdato < j.pubdato
   GROUP BY
     j.id_supplier,
-    periode
+    j.virksomhet
   HAVING
     dager_jour < 365
   ORDER BY
-    j.id_supplier ASC,
-    periode ASC;
+    sortparam DESC;
 END;
 
 CREATE PROCEDURE insertRecord( _id_supplier INT UNSIGNED,
