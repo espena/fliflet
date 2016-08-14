@@ -65,9 +65,56 @@
                 substr( $dd_mm_yyyy, 3, 2 ),
                 substr( $dd_mm_yyyy, 0, 2 ) );
     }
+    public function getTimeline() {
+      $sql =
+       "SELECT
+          CONCAT( YEAR( dokdato ), '-', LPAD( MONTH( dokdato ), 2, '0' ) ) AS periode,
+          AVG( DATEDIFF( jourdato, dokdato ) ) AS dager_jour,
+          AVG( DATEDIFF( pubdato, dokdato ) ) AS dager_pub
+        FROM
+          journal
+        WHERE
+          /*virksomhet = 'FD'
+        AND*/
+          dokdato > '2014-12-31'
+        AND
+          dokdato < jourdato
+        AND
+          jourdato < pubdato
+        AND
+          DATEDIFF( pubdato, dokdato ) < 365
+        GROUP BY
+          periode
+        ORDER BY
+          periode ASC";
+      if( $res = $this->mDb->query( $sql ) ) {
+        $labels = array();
+        while( $row = $res->fetch_assoc() ) {
+          $labels[] = $row[ 'periode' ];
+          $dataJour[] = $row[ 'dager_jour' ];
+          $dataPub[] = $row[ 'dager_pub' ];
+        }
+        $res->free();
+      }
+      return array(
+        'tittel' => 'Utvikling over tid, journalføring og publisering i OEP. Antall dager fra dokumentdato.',
+        'container_class' => 'timeline',
+        'type' => 'line',
+        'labels' => $labels,
+        'datasets' => array(
+                        array(
+                          'label' => 'Journalføring',
+                          'backgroundColor' => 'rgba(151,187,205,0.5)',
+                          'data' => $dataJour ),
+                        array(
+                          'label' => 'Publisering',
+                          'backgroundColor' => 'rgba(220,220,220,0.5)',
+                          'data' => $dataPub ) ) );
+    }
     public function getOverview() {
       $dataJour = array();
       $dataPub = array();
+      $dataTot = array();
       $labels = array();
       $longNames = array();
       $this->mDb->multi_query( "CALL statsOverview()" );
@@ -77,13 +124,24 @@
           $longNames[ $row[ 'forkortelse' ] ] = $row[ 'navn' ];
           $dataJour[] = $row[ 'dager_jour' ];
           $dataPub[] = $row[ 'dager_pub' ];
+          $dataTot[] = $row[ 'dager_tot' ];
+          $antallDok[] = $row[ 'antall_dok' ];
+          $maxMinDato[] = array(
+            'max' => strftime( '%d.%m.%Y', strtotime( $row[ 'max_dato' ] ) ),
+            'min' => strftime( '%d.%m.%Y', strtotime( $row[ 'min_dato' ] ) ) );
         }
         $res->free();
       }
       $this->flushResults();
       return array(
+        'tittel' => 'Journalføring og publisering i OEP fra 1/1-2016. Gjennomsnittlig antall dager fra dokumentdato.',
+        'container_class' => 'overview',
+        'type' => 'horizontalBar',
         'labels' => $labels,
         'longnames' => $longNames,
+        'antall_dok' => $antallDok,
+        'max_min_dato' => $maxMinDato,
+        'dager_tot' => $dataTot,
         'datasets' => array(
                         array(
                           'label' => 'Journalføring',

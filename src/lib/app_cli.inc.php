@@ -11,15 +11,15 @@
     public function doPreOperations() {
       $this->mApp->doPreOperations();
     }
-    public function tpl( $idt ) {
+    public function tpl( $idt, $returnResult = false ) {
       switch( $idt ) {
         case 'main':
           global $argc, $argv;
-          $this->mApp->tpl( 'cli_main' );
+          $this->mApp->tpl( 'cli_main', $returnResult );
           $this->main( $argc, $argv );
           break;
         default:
-          $this->mApp->tpl( $idt );
+          $this->mApp->tpl( $idt, $returnResult );
       }
     }
     public function doPostOperations() {

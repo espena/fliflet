@@ -10,13 +10,14 @@
     public function doPreOperations() {
       $this->mApp->doPreOperations();
     }
-    public function tpl( $idt ) {
+    public function tpl( $idt, $returnResult = false ) {
       switch( $idt ) {
         case 'main':
-          $this->mApp->tpl( 'web_main' );
-          break;
+          return $this->mApp->tpl( 'web_main', $returnResult );
+        case 'content':
+          return $this->mApp->tpl( 'web_content_front', $returnResult );
         default:
-          $this->mApp->tpl( $idt );
+          return $this->mApp->tpl( $idt, $returnResult );
       }
     }
     public function doPostOperations() {

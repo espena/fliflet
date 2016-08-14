@@ -32,24 +32,28 @@ BEGIN
     j.virksomhet AS forkortelse,
     COUNT( j.id_journal ) AS antall_dok,
     ROUND( AVG( DATEDIFF( j.jourdato, j.dokdato ) ) ) AS dager_jour,
-    ROUND( AVG( DATEDIFF( j.pubdato, j.dokdato ) ) ) AS dager_pub,
-    GREATEST( ROUND( AVG( DATEDIFF( j.jourdato, j.dokdato ) ) ), ROUND( AVG( DATEDIFF( j.pubdato, j.dokdato ) ) ) ) AS sortparam
+    ROUND( AVG( DATEDIFF( j.pubdato, j.dokdato ) ) ) - ROUND( AVG( DATEDIFF( j.jourdato, j.dokdato ) ) ) AS dager_pub,
+    ROUND( AVG( DATEDIFF( j.pubdato, j.dokdato ) ) ) AS dager_tot,
+    MAX( j.dokdato ) AS max_dato,
+    MIN( j.dokdato ) AS min_dato
   FROM
     supplier s
-      INNER JOIN
-        journal j
-          ON ( s.id_supplier = j.id_supplier )
+  INNER JOIN
+    journal j
+      ON ( s.id_supplier = j.id_supplier )
   WHERE
     j.dokdato < j.jourdato
   AND
     j.jourdato < j.pubdato
+  AND
+    j.dokdato > '2015-12-31'
   GROUP BY
     j.id_supplier,
     j.virksomhet
   HAVING
-    dager_jour < 365
+    dager_pub < 365
   ORDER BY
-    sortparam DESC;
+    dager_tot ASC;
 END;
 
 CREATE PROCEDURE insertRecord( _id_supplier INT UNSIGNED,

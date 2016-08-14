@@ -1,25 +1,16 @@
-USE fiflet;
-SET NAMES 'UTF8';
 SELECT
-  s.navn,
-  CONCAT( YEAR( pubdato ), '-', LPAD( MONTH( pubdato ), 2, '0' ) ) AS periode,
-  COUNT( j.id_journal ) AS antall_dok,
-  ROUND( AVG( DATEDIFF( j.jourdato, j.dokdato ) ) ) AS dager_jour,
-  ROUND( AVG( DATEDIFF( j.pubdato, j.dokdato ) ) ) AS dager_pub
+  CONCAT( YEAR( dokdato ), '-', LPAD( MONTH( dokdato ), 2, '0' ) ) AS periode,
+  AVG( DATEDIFF( jourdato, dokdato ) ) AS dager_jour,
+  AVG( DATEDIFF( pubdato, dokdato ) ) AS dager_pub
 FROM
-  supplier s
-    INNER JOIN
-      journal j
-        ON ( s.id_supplier = j.id_supplier )
+  journal
 WHERE
-  j.dokdato < j.jourdato
+  dokdato > '2014-12-31'
 AND
-  j.jourdato < j.pubdato
+  dokdato < jourdato
+AND
+  jourdato < pubdato
 GROUP BY
-  j.id_supplier,
   periode
-HAVING
-  dager_jour < 365
 ORDER BY
-  j.id_supplier ASC,
   periode ASC;

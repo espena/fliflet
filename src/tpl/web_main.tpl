@@ -7,7 +7,7 @@
     <meta name="author" content="Espen Andersen">
   </head>
   <body>
-    ##panels##
+    ##content##
     <script data-main="js/bootstrap" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js"></script>
   </body>
 </html>

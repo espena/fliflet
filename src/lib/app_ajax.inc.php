@@ -11,14 +11,14 @@
     public function doPreOperations() {
       $this->mApp->doPreOperations();
     }
-    public function tpl( $idt ) {
+    public function tpl( $idt, $returnResult = false ) {
       switch( $idt ) {
         case 'main':
           header('Content-Type: application/json');
           echo( $this->getJson() );
           break;
         default:
-          $this->mApp->tpl( $idt );
+          return $this->mApp->tpl( $idt, $returnResult );
       }
     }
     public function doPostOperations() {
@@ -29,6 +29,9 @@
       switch( $_GET[ 'ajax' ] ) {
         case 'overview':
           echo( json_encode( $db->getOverview() ) );
+          break;
+        case 'timeline':
+          echo( json_encode( $db->getTimeline() ) );
           break;
       }
     }

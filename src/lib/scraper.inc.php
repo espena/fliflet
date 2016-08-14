@@ -24,8 +24,9 @@
       $pageSize = isset( $this->mConfig[ 'fiflet' ][ 'pagesize' ] ) ? intval( $this->mConfig[ 'fiflet' ][ 'pagesize' ] ) : 100;
       $pageCount = isset( $this->mConfig[ 'fiflet' ][ 'pagecount' ] ) ? intval( $this->mConfig[ 'fiflet' ][ 'pagecount' ] ) : 5;
       $maxOffset = $pageSize * $pageCount;
-      printf( "%s hits per request, starting at page 1\n", $pageSize );
-      for( $offset = 0; $offset < $maxOffset; $offset += $pageSize ) {
+      $startCount = isset( $this->mConfig[ 'fiflet' ][ 'start_count' ] ) ? intval( $this->mConfig[ 'fiflet' ][ 'start_count' ] ) * $pageSize : 0;
+      printf( "%s hits per request, starting at offset $startCount\n", $pageSize );
+      for( $offset = $startCount; $offset < $maxOffset; $offset += $pageSize ) {
         $delay = isset( $this->mConfig[ 'fiflet' ][ 'seconds_between_requests' ] )
                ? intval( $this->mConfig[ 'fiflet' ][ 'seconds_between_requests' ] )
                : 5;

@@ -4,7 +4,7 @@
   define( 'TEMPLATE_FUNCTION_PATTERN', '/^([^\\(]+)\\(([^\\)]*)\\)$/' );
   class Template {
     private $mTplText;
-    public function __construct( $idt ) {
+    public function __construct( $idt, $app = NULL ) {
       if( file_exists( $idt ) ) {
         $tplFile = $idt;
       }
@@ -19,8 +19,8 @@
       if( preg_match_all( TEMPLATE_INC_PATTERN, $this->mTplText, $m0, PREG_SET_ORDER ) ) {
         foreach( $m0 as $inc ) {
           if( !isset( $resolved[ $inc[ 0 ] ] ) ) {
-            $tpl = new Template( $inc[ 1 ] );
-            $resolved[ $inc[ 0 ] ] = $tpl->render( isset( $data[ $inc[ 1 ] ] ) ? $data[ $inc[ 1 ] ] : $data );
+            global $theApp;
+            $resolved[ $inc[ 0 ] ] = $theApp->tpl( $inc[ 1 ], TRUE );
           }
         }
       }
