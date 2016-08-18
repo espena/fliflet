@@ -10,17 +10,18 @@
     public function doPreOperations() {
 
     }
-    public function tpl( $idt, $returnResult = false ) {
+    public function tpl( $idt, $data = null, $returnResult = false ) {
       switch( $idt ) {
         case 'phpinfo':
           phpinfo();
           break;
         default:
           $t = new Template( $idt );
+          $html = $t->render( $data ? $data : array() );
           if( $returnResult ) {
-            return $t->render( array() );
+            return $html;
           }
-          echo $t->render( array() );
+          echo $html;
       }
     }
     public function doPostOperations() {

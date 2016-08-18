@@ -10,14 +10,24 @@
     public function doPreOperations() {
       $this->mApp->doPreOperations();
     }
-    public function tpl( $idt, $returnResult = false ) {
+    public function tpl( $idt, $data = null, $returnResult = false ) {
       switch( $idt ) {
         case 'main':
-          return $this->mApp->tpl( 'web_main', $returnResult );
+          return $this->mApp->tpl( 'web_main', $data, $returnResult );
         case 'content':
-          return $this->mApp->tpl( 'web_content_front', $returnResult );
+          if( empty( $_GET[ 'supplier' ] ) ) {
+            return $this->mApp->tpl( 'web_content_front', $data, TRUE );
+          }
+          else {
+            $db = Factory::getDatabase();
+            $data = $db->getStatsSupplier( intval( $_GET[ 'supplier' ] ) );
+            return $this->mApp->tpl( 'web_content_individual', $data, TRUE );
+          }
+        case 'web_panel_individual':
+          $db = Factory::getDatabase();
+          return $this->mApp->tpl( $idt, $db->getListSuppliers(), true );
         default:
-          return $this->mApp->tpl( $idt, $returnResult );
+          return $this->mApp->tpl( $idt, $data, $returnResult );
       }
     }
     public function doPostOperations() {

@@ -5,6 +5,8 @@
     <title>Journalføring i offentlige etater</title>
     <meta name="description" content="Fiflet statistics tool">
     <meta name="author" content="Espen Andersen">
+    <link rel="stylesheet" type="text/css" href="styles/fiflet.css" />
+    <link rel="stylesheet" href="js/lib/jqcloud/jqcloud.min.css">
   </head>
   <body>
     ##content##

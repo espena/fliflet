@@ -1,4 +1,8 @@
 <section class="panels">
-  <canvas class="overview" width="400" height="150"></canvas>
-  <canvas class="timeline" width="400" height="150"></canvas>
+  <section class="common">
+    <canvas class="chart overview" data-chart-type="overview" width="400" height="150"></canvas>
+    <canvas class="chart timeline" data-chart-type="timeline" width="400" height="150"></canvas>
+    <div class="cloud" data-cloud-index="0"></div>
+    <div class="cloud" data-cloud-index="1"></div>
+  </section>
 </section>

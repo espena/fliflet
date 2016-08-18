@@ -4,6 +4,7 @@
   class Database {
     private $mConfig;
     private $mDb;
+    private $mSuppliers;
     public function __construct( $config ) {
       $this->mConfig = $config;
       if( isset( $this->mConfig[ 'mysql' ] ) ) {
@@ -65,24 +66,46 @@
                 substr( $dd_mm_yyyy, 3, 2 ),
                 substr( $dd_mm_yyyy, 0, 2 ) );
     }
-    public function getTimeline() {
+    public function getListSuppliers() {
+      if( empty( $this->mSuppliers ) ) {
+        $this->mSuppliers = array();
+        $sql = "SELECT * FROM supplier ORDER BY navn";
+        if( $res = $this->mDb->query( $sql ) ) {
+          while( $row = $res->fetch_assoc() ) {
+            $this->mSuppliers[] = $row;
+          }
+          $res->free();
+        }
+      }
+      return $this->mSuppliers;
+    }
+    public function getStatsSupplier( $supplierId ) {
+      $statsSupplier = array();
+      $this->mDb->multi_query( "CALL statsOverview( $supplierId )" );
+      if( $res = $this->getFirstResult() ) {
+        while( $row = $res->fetch_assoc() ) {
+          $statsSupplier = $row;
+        }
+        $res->free();
+      }
+      $this->flushResults();
+      return $statsSupplier;
+    }
+    public function getTimeline( $supplierId = 0 ) {
+      $supplierId = intval( $supplierId );
       $sql =
        "SELECT
-          CONCAT( YEAR( dokdato ), '-', LPAD( MONTH( dokdato ), 2, '0' ) ) AS periode,
-          AVG( DATEDIFF( jourdato, dokdato ) ) AS dager_jour,
-          AVG( DATEDIFF( pubdato, dokdato ) ) AS dager_pub
+          periode,
+          ROUND( AVG( DATEDIFF( jourdato, dokdato ) ) ) AS dager_jour,
+          ROUND( AVG( DATEDIFF( pubdato, dokdato ) ) ) AS dager_pub
         FROM
           journal
         WHERE
-          /*virksomhet = 'FD'
-        AND*/
-          dokdato > '2014-12-31'
+          ( $supplierId = 0 OR id_supplier = $supplierId )
         AND
-          dokdato < jourdato
+          dokdato > '2015-12-31'
         AND
-          jourdato < pubdato
-        AND
-          DATEDIFF( pubdato, dokdato ) < 365
+          dokdato < DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
         GROUP BY
           periode
         ORDER BY
@@ -96,20 +119,41 @@
         }
         $res->free();
       }
+      $title = 'Utvikling i journalføring og publisering i OEP';
       return array(
-        'tittel' => 'Utvikling over tid, journalføring og publisering i OEP. Antall dager fra dokumentdato.',
-        'container_class' => 'timeline',
         'type' => 'line',
-        'labels' => $labels,
-        'datasets' => array(
-                        array(
-                          'label' => 'Journalføring',
-                          'backgroundColor' => 'rgba(151,187,205,0.5)',
-                          'data' => $dataJour ),
-                        array(
-                          'label' => 'Publisering',
-                          'backgroundColor' => 'rgba(220,220,220,0.5)',
-                          'data' => $dataPub ) ) );
+        'data' => array (
+          'name' => 'timeline',
+          'labels' => $labels,
+          'datasets' => array(
+            array(
+              'label' => 'Journalføring',
+              'backgroundColor' => 'rgba(151,187,205,0.5)',
+              'data' => $dataJour ),
+            array(
+              'label' => 'Publisering',
+              'backgroundColor' => 'rgba(220,220,220,0.5)',
+              'data' => $dataPub )
+          )
+        ),
+        'options' => array(
+          'responsive' => TRUE,
+          'legend' => array(
+            'position' => 'top'
+          ),
+          'scales' => array(
+            'yAxes' => array(
+              array(
+                'type' => 'fifletY'
+              ),
+            )
+          ),
+          'title' => array(
+            'display' => TRUE,
+            'text' => $title
+          )
+        )
+      );
     }
     public function getOverview() {
       $dataJour = array();
@@ -117,11 +161,13 @@
       $dataTot = array();
       $labels = array();
       $longNames = array();
-      $this->mDb->multi_query( "CALL statsOverview()" );
+      $supplierIds = array();
+      $this->mDb->multi_query( "CALL statsOverview( 0 )" );
       if( $res = $this->getFirstResult() ) {
         while( $row = $res->fetch_assoc() ) {
           $labels[] = $row[ 'forkortelse' ];
           $longNames[ $row[ 'forkortelse' ] ] = $row[ 'navn' ];
+          $supplierIds[ $row[ 'forkortelse' ] ] = $row[ 'id_supplier' ];
           $dataJour[] = $row[ 'dager_jour' ];
           $dataPub[] = $row[ 'dager_pub' ];
           $dataTot[] = $row[ 'dager_tot' ];
@@ -133,24 +179,142 @@
         $res->free();
       }
       $this->flushResults();
+      $title = 'Journalføring og publisering i OEP fra 1/1-2016. Gjennomsnittlig antall dager fra dokumentdato.';
       return array(
-        'tittel' => 'Journalføring og publisering i OEP fra 1/1-2016. Gjennomsnittlig antall dager fra dokumentdato.',
-        'container_class' => 'overview',
         'type' => 'horizontalBar',
-        'labels' => $labels,
-        'longnames' => $longNames,
-        'antall_dok' => $antallDok,
-        'max_min_dato' => $maxMinDato,
-        'dager_tot' => $dataTot,
-        'datasets' => array(
-                        array(
-                          'label' => 'Journalføring',
-                          'backgroundColor' => 'rgba(151,187,205,0.5)',
-                          'data' => $dataJour ),
-                        array(
-                          'label' => 'Publisering',
-                          'backgroundColor' => 'rgba(220,220,220,0.5)',
-                          'data' => $dataPub ) ) );
+        'data' => array(
+          'name' => 'overview',
+          'labels' => $labels,
+          'longnames' => $longNames,
+          'supplierIds' => $supplierIds,
+          'antall_dok' => $antallDok,
+          'max_min_dato' => $maxMinDato,
+          'dager_tot' => $dataTot,
+          'datasets' => array(
+            array(
+              'label' => 'Journalføring',
+              'backgroundColor' => 'rgba(151,187,205,0.5)',
+              'data' => $dataJour ),
+            array(
+              'label' => 'Publisering',
+              'backgroundColor' => 'rgba(220,220,220,0.5)',
+              'data' => $dataPub
+            )
+          )
+        ),
+        'options' => array(
+          'scales' => array(
+            'xAxes' => array(
+              array( 'stacked' => TRUE )
+            ),
+            'yAxes' => array(
+              array( 'stacked' => TRUE )
+            )
+          ),
+          'title' => array(
+            'display' => TRUE,
+            'text' => $title
+          )
+        )
+      );
+    }
+    public function regenClouds() {
+      $suppliers = explode( ',', $this->mConfig[ 'fiflet' ][ 'suppliers_to_monitor' ] );
+      $suppliers[] = 0;
+      foreach( $suppliers as $supplierId ) {
+        $cloudFile = DIR_CACHE . sprintf( "/cloud_%d.json", $supplierId );
+        @unlink( $cloudFile );
+        $data = $this->realRegenClouds( $supplierId );
+        file_put_contents(
+          $cloudFile,
+          json_encode( $data ) );
+      }
+    }
+    private function realRegenClouds( $supplierId = 0 ) {
+      $data = array( array(), array() );
+      $cloud = array();
+      $this->mDb->multi_query( "CALL getCloudDatasets( $supplierId )" );
+      if( $this->mDb->more_results() ) {
+        if( $res0 = $this->mDb->store_result() ) {
+          $this->cloudPopulate( $cloud, $res0, FALSE );
+          $res0->free();
+        }
+      }
+      if( $this->mDb->more_results() ) {
+        if( $res1 = $this->mDb->store_result() ) {
+          $this->cloudPopulate( $cloud, $res1, TRUE );
+          $res1->free();
+        }
+      }
+      $this->flushResults();
+      foreach( $cloud as $text => $weight ) {
+        $data[  0 ][ ] = array(
+          'text' => $text,
+          'weight' => $weight,
+          'html' => array(
+            'title' => sprintf( "%d forekomster i 10.000 dokumenter", $weight )
+          ) );
+      }
+      $cloud = array();
+      $this->mDb->multi_query( "CALL getCloudDatasetsInv( $supplierId )" );
+      if( $this->mDb->more_results() ) {
+        if( $res0 = $this->mDb->store_result() ) {
+          $this->cloudPopulate( $cloud, $res0, FALSE );
+          $res0->free();
+        }
+      }
+      if( $this->mDb->more_results() ) {
+        if( $res1 = $this->mDb->store_result() ) {
+          $this->cloudPopulate( $cloud, $res1, TRUE );
+          $res1->free();
+        }
+      }
+      $this->flushResults();
+      foreach( $cloud as $text => $weight ) {
+        $data[  1 ][ ] = array(
+          'text' => $text,
+          'weight' => $weight,
+          'html' => array(
+            'title' => sprintf( "%d forekomster i 10.000 dokumenter", $weight )
+          ) );
+      }
+      return $data;
+    }
+    private function cloudPopulate( &$cloud, &$res, $reduce = FALSE ) {
+      $ignoredWords = array( 'avskjermet', 'norge', 'svar', 'notat', 'referat',
+                             'utkast', 'vedr',
+                             'spørsmål', 'vedrørende', 'brev', 'norsk', 'oversendelse',
+                             'kopi', 'over', 'draft', 'etter', 'henvendelse', 'ingen' );
+      while( $row = $res->fetch_assoc() ) {
+        $words = preg_split( '/[ \-\/]+/', $row[ 'doktittel' ] );
+        foreach( $words as $word ) {
+          if( array_search( $word, $ignoredWords ) !== FALSE ) {
+              continue;
+          }
+          if( strlen( $word ) > 3 && !is_numeric( $word ) ) {
+            if( isset( $cloud[ $word ] ) ) {
+              if( $reduce ) {
+                if( $cloud[ $word ] > 1 ) {
+                  $cloud[ $word ]--;
+                }
+                else {
+                  unset( $cloud[ $word ] );
+                }
+              }
+              else {
+                $cloud[ $word ]++;
+              }
+            }
+            else if( !$reduce ) {
+              $cloud[ $word ] = 1;
+            }
+          }
+        }
+      }
+      arsort( $cloud );
+      if( count( $cloud ) > 500 ) {
+        $cloud = array_slice( $cloud, 0, 500 );
+      }
     }
     private function getFirstResult() {
       $res = null;
@@ -163,8 +327,8 @@
       while( $this->mDb->more_results() ) {
         $this->mDb->next_result();
         if( $res = $this->mDb->store_result() ) {
-          if( $res->errorno ) {
-            Factory::getLogger()->error( $res->error );
+          if( $this->mDb->error ) {
+            Factory::getLogger()->error( $this->mDb->error );
           }
           $res->free();
         }

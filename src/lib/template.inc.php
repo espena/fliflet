@@ -14,6 +14,18 @@
       $this->mTplText = file_exists( $tplFile ) ? file_get_contents( $tplFile ) : $idt;
     }
     public function render( $data ) {
+      $res = '';
+      if( isset( $data[ 0 ] ) ) {
+        for( $i = 0; $i < count( $data ); $i++ ) {
+          $res .= $this->realRender( $data[ $i ] );
+        }
+      }
+      else {
+        $res = $this->realRender( $data );
+      }
+      return $res;
+    }
+    private function realRender( $data ) {
       $resolved = array();
       // Expand template includes
       if( preg_match_all( TEMPLATE_INC_PATTERN, $this->mTplText, $m0, PREG_SET_ORDER ) ) {

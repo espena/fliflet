@@ -11,7 +11,7 @@
     public function doPreOperations() {
       $this->mApp->doPreOperations();
     }
-    public function tpl( $idt, $returnResult = false ) {
+    public function tpl( $idt, $data = null, $returnResult = false ) {
       switch( $idt ) {
         case 'main':
           global $argc, $argv;
@@ -19,7 +19,7 @@
           $this->main( $argc, $argv );
           break;
         default:
-          $this->mApp->tpl( $idt, $returnResult );
+          $this->mApp->tpl( $idt, $data, $returnResult );
       }
     }
     public function doPostOperations() {
@@ -36,6 +36,11 @@
       }
       else if( array_search( 'list-suppliers', $argv ) !== FALSE ) {
         print_r( Factory::getSuppliers( FALSE ) );
+      }
+      else if( array_search( 'regen-clouds', $argv ) !== FALSE ) {
+        $db = Factory::getDatabase();
+        $db->regenClouds();
+        printf( "Word clouds regenerated\n" );
       }
       else if( array_search( 'scrape', $argv ) !== FALSE ) {
         $scraper = new Scraper();

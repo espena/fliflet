@@ -11,14 +11,14 @@
     public function doPreOperations() {
       $this->mApp->doPreOperations();
     }
-    public function tpl( $idt, $returnResult = false ) {
+    public function tpl( $idt, $data = null, $returnResult = false ) {
       switch( $idt ) {
         case 'main':
           header('Content-Type: application/json');
           echo( $this->getJson() );
           break;
         default:
-          return $this->mApp->tpl( $idt, $returnResult );
+          return $this->mApp->tpl( $idt, $data, $returnResult );
       }
     }
     public function doPostOperations() {
@@ -31,7 +31,15 @@
           echo( json_encode( $db->getOverview() ) );
           break;
         case 'timeline':
-          echo( json_encode( $db->getTimeline() ) );
+          echo( json_encode( $db->getTimeline( isset( $_GET[ 'supplier' ] ) ? intval( $_GET[ 'supplier' ] ) : 0 ) ) );
+          break;
+        case 'cloud':
+          $supplierId = isset( $_GET[ 'supplier' ] ) ? intval( $_GET[ 'supplier' ] ) : 0;
+          $cloudJson = DIR_CACHE . sprintf( "/cloud_%d.json", $supplierId );
+          if( !file_exists( $cloudJson ) ) {
+            $db->regenClouds();
+          }
+          echo( file_get_contents( $cloudJson ) );
           break;
       }
     }
