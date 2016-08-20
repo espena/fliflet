@@ -47,16 +47,16 @@
         $tableRow = $tableRows->item( $i );
         $record = array(
           'id_supplier'     => $supplierId,
-          'sakstittel'      => trim( $tableRow->childNodes->item(  0 )->textContent ),
-          'dokumenttittel'  => trim( $tableRow->childNodes->item(  2 )->textContent ),
-          'saksnr'          => trim( $tableRow->childNodes->item(  4 )->textContent ),
-          'doknr'           => trim( $tableRow->childNodes->item(  6 )->textContent ),
+          'case_title'      => trim( $tableRow->childNodes->item(  0 )->textContent ),
+          'doc_title'       => trim( $tableRow->childNodes->item(  2 )->textContent ),
+          'case_num'        => trim( $tableRow->childNodes->item(  4 )->textContent ),
+          'doc_num'         => trim( $tableRow->childNodes->item(  6 )->textContent ),
           'virksomhet'      => trim( $tableRow->childNodes->item(  8 )->textContent ),
-          'dokdato'         => trim( $tableRow->childNodes->item( 10 )->textContent ),
-          'jourdato'        => trim( $tableRow->childNodes->item( 12 )->textContent ),
-          'pubdato'         => trim( $tableRow->childNodes->item( 14 )->textContent ),
-          'annenpart'       => trim( $tableRow->childNodes->item( 16 )->textContent ),
-          'unntaksgrunnlag' => trim( $tableRow->childNodes->item( 18 )->textContent ) );
+          'doc_date'        => trim( $tableRow->childNodes->item( 10 )->textContent ),
+          'jour_date'       => trim( $tableRow->childNodes->item( 12 )->textContent ),
+          'pub_date'        => trim( $tableRow->childNodes->item( 14 )->textContent ),
+          'second_party'    => trim( $tableRow->childNodes->item( 16 )->textContent ),
+          'exception_basis' => trim( $tableRow->childNodes->item( 18 )->textContent ) );
         $db->insertRecord( $record );
       }
     }

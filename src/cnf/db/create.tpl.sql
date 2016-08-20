@@ -5,23 +5,25 @@ USE %%database%%;
 CREATE TABLE journal (
   id_journal BIGINT UNSIGNED NOT NULL PRIMARY KEY AUTO_INCREMENT,
   id_supplier INT UNSIGNED NOT NULL,
-  sakstittel TEXT,
-  doktittel TEXT,
-  saksaar CHAR( 4 ),
-  saksnr INT UNSIGNED,
-  doknr INT UNSIGNED,
-  virksomhet VARCHAR( 30 ),
-  dokdato DATE,
-  jourdato DATE,
-  pubdato DATE,
-  annenpart TEXT,
-  unntaksgrunnlag VARCHAR( 150 ),
-  datediff_dok2jour INT UNSIGNED,
+  case_title TEXT,
+  doc_title TEXT,
+  case_year CHAR( 4 ),
+  case_num INT UNSIGNED,
+  doc_num INT UNSIGNED,
+  gov_body VARCHAR( 30 ),
+  doc_date DATE,
+  jour_date DATE,
+  pub_date DATE,
+  direction ENUM( 'I', 'O' ),
+  second_party TEXT,
+  exception_basis VARCHAR( 150 ),
+  datediff_doc2jour INT UNSIGNED,
   datediff_jour2pub INT UNSIGNED,
-  datediff_dok2pub INT UNSIGNED,
+  datediff_doc2pub INT UNSIGNED,
   scrapetime TIMESTAMP,
+  period CHAR( 7 ),
   INDEX idx_supplier ( id_supplier ),
-  UNIQUE INDEX uidx_dokidentitet ( virksomhet, saksaar, saksnr, doknr )
+  UNIQUE INDEX uidx_doc_identity ( gov_body, case_year, case_num, doc_num )
 );
 
 CREATE TABLE supplier (
@@ -38,14 +40,14 @@ CREATE TABLE clouds(
 CREATE PROCEDURE getCloudDatasets( _id_supplier INT UNSIGNED )
 BEGIN
   SELECT
-    DATEDIFF( pubdato, dokdato ) AS forsinkelse,
-    LOWER( doktittel ) AS doktittel
+    DATEDIFF( pub_date, doc_date ) AS forsinkelse,
+    LOWER( doc_title ) AS doc_title
   FROM
     journal
   WHERE
-    pubdato > dokdato
+    pub_date > doc_date
   AND
-    pubdato < CURRENT_DATE()
+    pub_date < CURRENT_DATE()
   AND
     ( _id_supplier = 0 OR _id_supplier = id_supplier )
   ORDER BY
@@ -54,14 +56,14 @@ BEGIN
   LIMIT
     10000;
   SELECT
-    DATEDIFF( pubdato, dokdato ) AS forsinkelse,
-    LOWER( doktittel ) AS doktittel
+    DATEDIFF( pub_date, doc_date ) AS forsinkelse,
+    LOWER( doc_title ) AS doc_title
   FROM
     journal
   WHERE
-    pubdato > dokdato
+    pub_date > doc_date
   AND
-    pubdato < CURRENT_DATE()
+    pub_date < CURRENT_DATE()
   AND
     ( _id_supplier = 0 OR _id_supplier = id_supplier )
   ORDER BY
@@ -74,14 +76,14 @@ END;
 CREATE PROCEDURE getCloudDatasetsInv( _id_supplier INT UNSIGNED )
 BEGIN
   SELECT
-    DATEDIFF( pubdato, dokdato ) AS forsinkelse,
-    LOWER( doktittel ) AS doktittel
+    DATEDIFF( pub_date, doc_date ) AS forsinkelse,
+    LOWER( doc_title ) AS doc_title
   FROM
     journal
   WHERE
-    pubdato > dokdato
+    pub_date > doc_date
   AND
-    pubdato < CURRENT_DATE()
+    pub_date < CURRENT_DATE()
   AND
     ( _id_supplier = 0 OR _id_supplier = id_supplier )
   ORDER BY
@@ -90,14 +92,15 @@ BEGIN
   LIMIT
     10000;
   SELECT
-    DATEDIFF( pubdato, dokdato ) AS forsinkelse,
-    LOWER( doktittel ) AS doktittel
+
+    DATEDIFF( pub_date, doc_date ) AS forsinkelse,
+    LOWER( doc_title ) AS doc_title
   FROM
     journal
   WHERE
-    pubdato > dokdato
+    pub_date > doc_date
   AND
-    pubdato < CURRENT_DATE()
+    pub_date < CURRENT_DATE()
   AND
     ( _id_supplier = 0 OR _id_supplier = id_supplier )
   ORDER BY
@@ -107,38 +110,36 @@ BEGIN
     10000;
 END;
 
-CREATE PROCEDURE regenMedians()
+CREATE PROCEDURE regenStatistics()
 BEGIN
-
   DECLARE bDone INT;
   DECLARE _id_supplier INT UNSIGNED;
   DECLARE _navn VARCHAR( 150 );
   DECLARE curs CURSOR FOR SELECT DISTINCT id_supplier FROM supplier;
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET bDone = 1;
 
-  UPDATE
-    journal
-  SET
-    datediff_dok2jour = DATEDIFF( jourdato, dokdato ),
-    datediff_jour2pub = DATEDIFF( pubdato, jourdato ),
-    datediff_dok2pub = DATEDIFF( pubdato, dokdato )
-  WHERE
-    dokdato <= jourdato
-  AND
-    jourdato <= pubdato
-  AND
-    pubdato <= CURRENT_DATE()
-  AND
-    dokdato > '1999-12-31';
+  DROP TABLE IF EXISTS statistics;
 
-  DROP TABLE IF EXISTS median;
-
-  CREATE TABLE median(
+  CREATE TABLE statistics(
     id_supplier INT UNSIGNED PRIMARY KEY,
+    abbr_supplier VARCHAR( 30 ),
+    name_supplier VARCHAR( 150 ),
     period CHAR( 7 ),
-    median_dok2jour DOUBLE,
+    doc_count INT UNSIGNED,
+    max_doc_date DATE,
+    min_doc_date DATE,
+    median_doc2jour DOUBLE,
     median_jour2pub DOUBLE,
-    median_dok2pub DOUBLE );
+    median_doc2pub DOUBLE,
+    modal_v_doc2jour DOUBLE,
+    modal_v_jour2pub DOUBLE,
+    modal_v_doc2pub DOUBLE,
+    modal_p_doc2jour DOUBLE,
+    modal_p_jour2pub DOUBLE,
+    modal_p_doc2pub DOUBLE,
+    average_doc2jour DOUBLE,
+    average_jour2pub DOUBLE,
+    average_doc2pub DOUBLE );
 
   OPEN curs;
   SET bDone = 0;
@@ -146,23 +147,26 @@ BEGIN
   REPEAT
     FETCH curs INTO _id_supplier;
     REPLACE INTO
-      median( id_supplier, median_dok2pub )
+      statistics( id_supplier, doc_count, median_doc2pub )
     SELECT
       _id_supplier AS id_supplier,
-      AVG( t1.datediff_dok2pub ) AS median_dok2jour
+      COUNT( * ) AS doc_count,
+      AVG( t1.datediff_doc2pub ) AS median_doc2pub
     FROM
     (
       SELECT
         @rownum:=@rownum + 1 AS `row_number`,
-        d.datediff_dok2pub
+        d.datediff_doc2pub
       FROM
         journal d, ( SELECT @rownum:=0 ) r
       WHERE
-        d.datediff_dok2pub IS NOT NULL
+        d.datediff_doc2pub IS NOT NULL
       AND
         d.id_supplier = _id_supplier
+      AND
+        d.doc_date BETWEEN '2015-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
       ORDER BY
-        d.datediff_dok2pub
+        d.datediff_doc2pub
     ) AS t1,
     (
       SELECT
@@ -170,32 +174,36 @@ BEGIN
       FROM
         journal d
       WHERE
-        d.datediff_dok2pub IS NOT NULL
+        d.datediff_doc2pub IS NOT NULL
       AND
         d.id_supplier = _id_supplier
+      AND
+        d.doc_date BETWEEN '2015-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
     ) AS t2
     WHERE 1
     AND
       t1.row_number IN ( FLOOR( ( total_rows + 1 ) / 2 ), FLOOR( ( total_rows + 2 ) / 2 ) );
     UPDATE
-      median AS m
+      statistics AS m
         INNER JOIN (
           SELECT
             _id_supplier AS id_supplier,
-            AVG( t1.datediff_dok2jour ) AS median_dok2jour
+            AVG( t1.datediff_doc2jour ) AS median_doc2jour
           FROM
           (
             SELECT
               @rownum:=@rownum + 1 AS `row_number`,
-              d.datediff_dok2jour
+              d.datediff_doc2jour
             FROM
               journal d, ( SELECT @rownum:=0 ) r
             WHERE
-              d.datediff_dok2jour IS NOT NULL
+              d.datediff_doc2jour IS NOT NULL
             AND
               d.id_supplier = _id_supplier
+            AND
+              d.doc_date BETWEEN '2015-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
             ORDER BY
-              d.datediff_dok2jour
+              d.datediff_doc2jour
           ) AS t1,
           (
             SELECT
@@ -203,18 +211,20 @@ BEGIN
             FROM
               journal d
             WHERE
-              d.datediff_dok2jour IS NOT NULL
+              d.datediff_doc2jour IS NOT NULL
             AND
               d.id_supplier = _id_supplier
+            AND
+              d.doc_date BETWEEN '2015-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
           ) AS t2
           WHERE 1
           AND
             t1.row_number IN ( FLOOR( ( total_rows + 1 ) / 2 ), FLOOR( ( total_rows + 2 ) / 2 ) )
         ) AS n ON ( m.id_supplier = n.id_supplier )
     SET
-      m.median_dok2jour = n.median_dok2jour;
+      m.median_doc2jour = n.median_doc2jour;
     UPDATE
-      median AS m
+      statistics AS m
         INNER JOIN (
           SELECT
             _id_supplier AS id_supplier,
@@ -230,6 +240,8 @@ BEGIN
               d.datediff_jour2pub IS NOT NULL
             AND
               d.id_supplier = _id_supplier
+            AND
+              d.doc_date BETWEEN '2015-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
             ORDER BY
               d.datediff_jour2pub
           ) AS t1,
@@ -242,6 +254,8 @@ BEGIN
               d.datediff_jour2pub IS NOT NULL
             AND
               d.id_supplier = _id_supplier
+            AND
+              d.doc_date BETWEEN '2015-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
           ) AS t2
           WHERE 1
           AND
@@ -249,83 +263,246 @@ BEGIN
         ) AS n ON ( m.id_supplier = n.id_supplier )
     SET
       m.median_jour2pub = n.median_jour2pub;
+    UPDATE
+      statistics AS m
+        INNER JOIN (
+          SELECT
+            _id_supplier AS id_supplier,
+            AVG( datediff_doc2jour ) AS average_doc2jour,
+            AVG( datediff_jour2pub ) AS average_jour2pub,
+            AVG( datediff_doc2pub ) AS average_doc2pub
+          FROM
+            journal
+          WHERE
+            id_supplier = _id_supplier
+          AND
+            doc_date BETWEEN '2015-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
+          ) AS n
+              ON ( m.id_supplier = n.id_supplier )
+    SET
+      m.average_doc2jour = n.average_doc2jour,
+      m.average_jour2pub = n.average_jour2pub,
+      m.average_doc2pub = n.average_doc2pub;
+    UPDATE
+      statistics AS m
+        INNER JOIN (
+          SELECT
+            _id_supplier AS id_supplier,
+            COUNT(*) AS cnt,
+            datediff_doc2jour AS modal_v_doc2jour,
+            ROUND( COUNT( * ) * ( 100 / ( SELECT COUNT( * ) FROM journal WHERE id_supplier = _id_supplier AND datediff_doc2jour IS NOT NULL ) ) ) AS modal_p_doc2jour
+          FROM
+            journal
+          WHERE
+            id_supplier = _id_supplier
+          AND
+            datediff_doc2jour IS NOT NULL
+          AND
+            doc_date BETWEEN '2015-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
+          GROUP BY
+            datediff_doc2jour
+          ORDER BY
+            cnt DESC
+          LIMIT 1 ) AS n
+              ON ( m.id_supplier = n.id_supplier )
+    SET
+      m.modal_v_doc2jour = n.modal_v_doc2jour,
+      m.modal_p_doc2jour = n.modal_p_doc2jour;
+    UPDATE
+      statistics AS m
+        INNER JOIN (
+          SELECT
+            _id_supplier AS id_supplier,
+            COUNT(*) AS n,
+            datediff_jour2pub AS modal_v_jour2pub,
+            ROUND( COUNT( * ) * ( 100 / ( SELECT COUNT( * ) FROM journal WHERE id_supplier = _id_supplier AND datediff_jour2pub IS NOT NULL ) ) ) AS modal_p_jour2pub
+          FROM
+            journal
+          WHERE
+            id_supplier = _id_supplier
+          AND
+            datediff_jour2pub IS NOT NULL
+          AND
+            doc_date BETWEEN '2015-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
+          GROUP BY
+            datediff_jour2pub
+          ORDER BY
+            n DESC
+          LIMIT 1 ) AS n
+              ON ( m.id_supplier = n.id_supplier )
+    SET
+      m.modal_v_jour2pub = n.modal_v_jour2pub,
+      m.modal_p_jour2pub = n.modal_p_jour2pub;
+    UPDATE
+      statistics AS m
+        INNER JOIN (
+          SELECT
+            _id_supplier AS id_supplier,
+            COUNT(*) AS n,
+            datediff_doc2pub AS modal_v_doc2pub,
+            ROUND( COUNT( * ) * ( 100 / ( SELECT COUNT( * ) FROM journal WHERE id_supplier = _id_supplier AND datediff_doc2pub IS NOT NULL ) ) ) AS modal_p_doc2pub
+          FROM
+            journal
+          WHERE
+            id_supplier = _id_supplier
+          AND
+            datediff_doc2pub IS NOT NULL
+          AND
+            doc_date BETWEEN '2015-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
+          GROUP BY
+            datediff_doc2pub
+          ORDER BY
+            n DESC
+          LIMIT 1 ) AS n
+              ON ( m.id_supplier = n.id_supplier )
+    SET
+      m.modal_v_doc2pub = n.modal_v_doc2pub,
+      m.modal_p_doc2pub = n.modal_p_doc2pub;
   UNTIL bDone END REPEAT;
+  UPDATE
+    statistics s
+      INNER JOIN (
+        SELECT DISTINCT
+          j.id_supplier,
+          j.gov_body,
+          u.navn
+        FROM
+          journal j
+            INNER JOIN
+              supplier u
+                ON ( j.id_supplier = u.id_supplier )
+        WHERE
+          gov_body IS NOT NULL ) k
+            ON ( s.id_supplier = k.id_supplier )
+  SET
+    s.abbr_supplier = k.gov_body,
+    s.name_supplier = k.navn;
+  UPDATE
+    statistics s
+      INNER JOIN (
+        SELECT
+          id_supplier,
+          COUNT( * ) AS doc_count,
+          MAX( doc_date ) AS max_doc_date,
+          MIN( doc_date ) AS min_doc_date
+        FROM
+          journal
+        WHERE
+          datediff_doc2pub IS NOT NULL
+        AND
+          doc_date BETWEEN '2015-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
+        GROUP BY id_supplier ) j
+            ON ( s.id_supplier = j.id_supplier )
+  SET
+    s.doc_count = j.doc_count,
+    s.max_doc_date = j.max_doc_date,
+    s.min_doc_date = j.min_doc_date;
 END;
-
-CREATE PROCEDURE statsOverview( _id_supplier INT UNSIGNED )
+CREATE PROCEDURE overviewAverages()
 BEGIN
   SELECT
-    j.id_supplier,
-    s.navn,
-    j.virksomhet AS forkortelse,
-    COUNT( j.id_journal ) AS antall_dok,
-    ROUND( AVG( DATEDIFF( j.jourdato, j.dokdato ) ) ) AS dager_jour,
-    ROUND( AVG( DATEDIFF( j.pubdato, j.dokdato ) ) ) - ROUND( AVG( DATEDIFF( j.jourdato, j.dokdato ) ) ) AS dager_pub,
-    ROUND( AVG( DATEDIFF( j.pubdato, j.dokdato ) ) ) AS dager_tot,
-    MAX( j.dokdato ) AS max_dato,
-    MIN( j.dokdato ) AS min_dato
+    id_supplier,
+    name_supplier AS name,
+    abbr_supplier AS label,
+    doc_count,
+    average_doc2jour AS doc2jour,
+    average_doc2pub - average_doc2jour AS jour2pub,
+    average_doc2pub AS doc2pub,
+    max_doc_date AS max_date,
+    min_doc_date AS min_date
   FROM
-    supplier s
-  INNER JOIN
-    journal j
-      ON ( s.id_supplier = j.id_supplier )
-  WHERE
-    ( _id_supplier = 0 OR j.id_supplier = _id_supplier )
-  AND
-    j.dokdato < j.jourdato
-  AND
-    j.jourdato < j.pubdato
-  AND
-    j.dokdato > '2015-12-31'
-  AND
-    j.dokdato < DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
-  GROUP BY
-    j.id_supplier,
-    j.virksomhet
+    statistics
   ORDER BY
-    dager_tot DESC;
+    doc2pub DESC;
+END;
+
+CREATE PROCEDURE overviewMedians()
+BEGIN
+  SELECT
+    id_supplier,
+    name_supplier AS name,
+    abbr_supplier AS label,
+    doc_count,
+    median_doc2jour AS doc2jour,
+    median_jour2pub AS jour2pub,
+    median_doc2pub AS doc2pub,
+    max_doc_date AS max_date,
+    min_doc_date AS min_date
+  FROM
+    statistics
+  ORDER BY
+    doc2pub DESC;
+END;
+
+CREATE PROCEDURE overviewModals()
+BEGIN
+  SELECT
+    id_supplier,
+    name_supplier AS name,
+    abbr_supplier AS label,
+    doc_count,
+    modal_v_doc2jour AS doc2jour,
+    modal_v_jour2pub AS jour2pub,
+    modal_v_doc2pub AS doc2pub,
+    max_doc_date AS max_date,
+    min_doc_date AS min_date
+  FROM
+    statistics
+  ORDER BY
+    doc2pub DESC;
 END;
 
 CREATE PROCEDURE insertRecord( _id_supplier INT UNSIGNED,
-                               _sakstittel TEXT,
-                               _doktittel TEXT,
-                               _saksaar CHAR( 4 ),
-                               _saksnr INT UNSIGNED,
-                               _doknr INT UNSIGNED,
-                               _virksomhet VARCHAR( 30 ),
-                               _dokdato DATE,
-                               _jourdato DATE,
-                               _pubdato DATE,
-                               _annenpart TEXT,
-                               _unntaksgrunnlag VARCHAR( 150 ) )
+                               _case_title TEXT,
+                               _doc_title TEXT,
+                               _case_year CHAR( 4 ),
+                               _case_num INT UNSIGNED,
+                               _doc_num INT UNSIGNED,
+                               _gov_body VARCHAR( 30 ),
+                               _doc_date DATE,
+                               _jour_date DATE,
+                               _pub_date DATE,
+                               _direction ENUM( 'I', 'O' ),
+                               _second_party TEXT,
+                               _exception_basis VARCHAR( 150 ) )
 BEGIN
    REPLACE INTO
        journal (
          id_supplier,
-         sakstittel,
-         doktittel,
-         saksaar,
-         saksnr,
-         doknr,
-         virksomhet,
-         dokdato,
-         jourdato,
-         pubdato,
-         annenpart,
-         unntaksgrunnlag )
+         case_title,
+         doc_title,
+         case_year,
+         case_num,
+         doc_num,
+         gov_body,
+         doc_date,
+         jour_date,
+         pub_date,
+         direction,
+         second_party,
+         exception_basis,
+         period,
+         datediff_doc2jour,
+         datediff_jour2pub,
+         datediff_doc2pub )
    VALUES (
      _id_supplier,
-     _sakstittel,
-     _doktittel,
-     _saksaar,
-     _saksnr,
-     _doknr,
-     _virksomhet,
-     _dokdato,
-     _jourdato,
-     _pubdato,
-     _annenpart,
-     _unntaksgrunnlag );
+     _case_title,
+     _doc_title,
+     _case_year,
+     _case_num,
+     _doc_num,
+     _gov_body,
+     _doc_date,
+     _jour_date,
+     _pub_date,
+     _direction,
+     _second_party,
+     _exception_basis,
+     CONCAT( SUBSTRING( _doc_date, 1, 4 ), '-', SUBSTRING( _doc_date, 6, 2 ) ),
+     DATEDIFF( _jour_date, _doc_date ),
+     DATEDIFF( _pub_date, _jour_date ),
+     DATEDIFF( _pub_date, _doc_date ) );
 END;
 
 CREATE PROCEDURE insertSupplier( _id_supplier INT UNSIGNED,

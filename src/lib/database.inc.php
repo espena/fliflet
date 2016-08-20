@@ -40,23 +40,26 @@
       $this->flushResults();
     }
     public function insertRecord( $record ) {
-      $record[ 'saksnr' ] = explode( '/', $record[ 'saksnr' ] );
-      $record[ 'dokdato' ] = $this->isoDate( $record[ 'dokdato' ] );
-      $record[ 'jourdato' ] = $this->isoDate( $record[ 'jourdato' ] );
-      $record[ 'pubdato' ] = $this->isoDate( $record[ 'pubdato' ] );
-      $sql = sprintf( "CALL insertRecord( %s, '%s', '%s', '%s', %s, %s, '%s', '%s', '%s', '%s', '%s', '%s' )",
+      $record[ 'case_num' ] = explode( '/', $record[ 'case_num' ] );
+      $record[ 'direction' ] = preg_replace( array( '/^TIL:\s+.*$/', '/^FRA:\s+.*$/' ), array( 'O', 'I' ), $record[ 'second_party' ] );
+      $record[ 'second_party' ] = preg_replace( '/^(TIL|FRA):\s+/', '', $record[ 'second_party' ] );
+      $record[ 'doc_date' ] = $this->isoDate( $record[ 'doc_date' ] );
+      $record[ 'jour_date' ] = $this->isoDate( $record[ 'jour_date' ] );
+      $record[ 'pub_date' ] = $this->isoDate( $record[ 'pub_date' ] );
+      $sql = sprintf( "CALL insertRecord( %s, '%s', '%s', '%s', %s, %s, '%s', '%s', '%s', '%s', '%s', '%s', '%s' )",
                             $this->mDb->escape_string( $record[ 'id_supplier' ] ),
-                            $this->mDb->escape_string( $record[ 'sakstittel' ] ),
-                            $this->mDb->escape_string( $record[ 'dokumenttittel' ] ),
-                            $this->mDb->escape_string( $record[ 'saksnr' ][ 0 ] ),
-                            $this->mDb->escape_string( $record[ 'saksnr' ][ 1 ] ),
-                            $this->mDb->escape_string( $record[ 'doknr' ] ),
+                            $this->mDb->escape_string( $record[ 'case_title' ] ),
+                            $this->mDb->escape_string( $record[ 'doc_title' ] ),
+                            $this->mDb->escape_string( $record[ 'case_num' ][ 0 ] ),
+                            $this->mDb->escape_string( $record[ 'case_num' ][ 1 ] ),
+                            $this->mDb->escape_string( $record[ 'doc_num' ] ),
                             $this->mDb->escape_string( $record[ 'virksomhet' ] ),
-                            $this->mDb->escape_string( $record[ 'dokdato' ] ),
-                            $this->mDb->escape_string( $record[ 'jourdato' ] ),
-                            $this->mDb->escape_string( $record[ 'pubdato' ] ),
-                            $this->mDb->escape_string( $record[ 'annenpart' ] ),
-                            $this->mDb->escape_string( $record[ 'unntaksgrunnlag' ] ) );
+                            $this->mDb->escape_string( $record[ 'doc_date' ] ),
+                            $this->mDb->escape_string( $record[ 'jour_date' ] ),
+                            $this->mDb->escape_string( $record[ 'pub_date' ] ),
+                            $this->mDb->escape_string( $record[ 'direction' ] ),
+                            $this->mDb->escape_string( $record[ 'second_party' ] ),
+                            $this->mDb->escape_string( $record[ 'exception_basis' ] ) );
       $this->mDb->multi_query( $sql );
       $this->flushResults();
     }
@@ -95,25 +98,25 @@
       $supplierId = intval( $supplierId );
       $sql =
        "SELECT
-          periode,
-          ROUND( AVG( DATEDIFF( jourdato, dokdato ) ) ) AS dager_jour,
-          ROUND( AVG( DATEDIFF( pubdato, dokdato ) ) ) AS dager_pub
+          period,
+          ROUND( AVG( DATEDIFF( jour_date, doc_date ) ) ) AS dager_jour,
+          ROUND( AVG( DATEDIFF( pub_date, doc_date ) ) ) AS dager_pub
         FROM
           journal
         WHERE
           ( $supplierId = 0 OR id_supplier = $supplierId )
         AND
-          dokdato > '2015-12-31'
+          doc_date > '2015-12-31'
         AND
-          dokdato < DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
+          doc_date < DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
         GROUP BY
-          periode
+          period
         ORDER BY
-          periode ASC";
+          period ASC";
       if( $res = $this->mDb->query( $sql ) ) {
         $labels = array();
         while( $row = $res->fetch_assoc() ) {
-          $labels[] = $row[ 'periode' ];
+          $labels[] = $row[ 'period' ];
           $dataJour[] = $row[ 'dager_jour' ];
           $dataPub[] = $row[ 'dager_pub' ];
         }
@@ -155,31 +158,43 @@
         )
       );
     }
-    public function getOverview() {
+
+    public function getOverviewAverages() {
+      return $this->getOverview( 'Averages', 'Journalføring og publisering i OEP fra 1/1-2016. Gjennomsnitt, antall dager fra dokumentdato.' );
+    }
+
+    public function getOverviewMedians() {
+      return $this->getOverview( 'Medians', 'Journalføring og publisering i OEP fra 1/1-2016. Medianer, antall dager fra dokumentdato.' );
+    }
+
+    public function getOverviewModals() {
+      return $this->getOverview( 'Modals', 'Journalføring og publisering i OEP fra 1/1-2016. Modusverdier, antall dager fra dokumentdato.' );
+    }
+
+    private function getOverview( $stProc, $title ) {
       $dataJour = array();
       $dataPub = array();
       $dataTot = array();
       $labels = array();
       $longNames = array();
       $supplierIds = array();
-      $this->mDb->multi_query( "CALL statsOverview( 0 )" );
+      $this->mDb->multi_query( "CALL overview" . $stProc . "()" );
       if( $res = $this->getFirstResult() ) {
         while( $row = $res->fetch_assoc() ) {
-          $labels[] = $row[ 'forkortelse' ];
-          $longNames[ $row[ 'forkortelse' ] ] = $row[ 'navn' ];
-          $supplierIds[ $row[ 'forkortelse' ] ] = $row[ 'id_supplier' ];
-          $dataJour[] = $row[ 'dager_jour' ];
-          $dataPub[] = $row[ 'dager_pub' ];
-          $dataTot[] = $row[ 'dager_tot' ];
-          $antallDok[] = $row[ 'antall_dok' ];
+          $labels[] = $row[ 'label' ];
+          $longNames[ $row[ 'label' ] ] = $row[ 'name' ];
+          $supplierIds[ $row[ 'label' ] ] = $row[ 'id_supplier' ];
+          $dataJour[] = $row[ 'doc2jour' ];
+          $dataPub[] = $row[ 'jour2pub' ];
+          $dataTot[] = $row[ 'doc2pub' ];
+          $antallDok[] = $row[ 'doc_count' ];
           $maxMinDato[] = array(
-            'max' => strftime( '%d.%m.%Y', strtotime( $row[ 'max_dato' ] ) ),
-            'min' => strftime( '%d.%m.%Y', strtotime( $row[ 'min_dato' ] ) ) );
+            'max' => strftime( '%d.%m.%Y', strtotime( $row[ 'max_date' ] ) ),
+            'min' => strftime( '%d.%m.%Y', strtotime( $row[ 'min_date' ] ) ) );
         }
         $res->free();
       }
       $this->flushResults();
-      $title = 'Journalføring og publisering i OEP fra 1/1-2016. Gjennomsnittlig antall dager fra dokumentdato.';
       return array(
         'type' => 'horizontalBar',
         'data' => array(
@@ -217,6 +232,10 @@
           )
         )
       );
+    }
+    public function regenStatistics() {
+      $this->mDb->multi_query( "CALL regenStatistics()" );
+      $this->flushResults();
     }
     public function regenClouds() {
       $suppliers = explode( ',', $this->mConfig[ 'fiflet' ][ 'suppliers_to_monitor' ] );
@@ -275,7 +294,7 @@
           'text' => $text,
           'weight' => $weight,
           'html' => array(
-            'title' => sprintf( "%d forekomster i 10.000 dokumenter", $weight )
+          'title' => sprintf( "%d forekomster i 10.000 dokumenter", $weight )
           ) );
       }
       return $data;
@@ -286,7 +305,7 @@
                              'spørsmål', 'vedrørende', 'brev', 'norsk', 'oversendelse',
                              'kopi', 'over', 'draft', 'etter', 'henvendelse', 'ingen' );
       while( $row = $res->fetch_assoc() ) {
-        $words = preg_split( '/[ \-\/]+/', $row[ 'doktittel' ] );
+        $words = preg_split( '/[ \-\/]+/', $row[ 'doc_title' ] );
         foreach( $words as $word ) {
           if( array_search( $word, $ignoredWords ) !== FALSE ) {
               continue;

@@ -31,6 +31,11 @@
         $db->createDb();
         printf( "Database recreated.\n" );
       }
+      else if( array_search( 'regen-statistics', $argv ) !== FALSE ) {
+        $db = Factory::getDatabase();
+        $db->regenStatistics();
+        printf( "Statistics regenerated\n" );
+      }
       else if( array_search( 'regen-suppliers', $argv ) !== FALSE ) {
         print_r( Factory::getSuppliers( TRUE ) );
       }

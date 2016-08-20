@@ -66,6 +66,7 @@ define( [
       context: e,
       data: {
         ajax: $e.data( 'chart-type' ) || 'overview',
+        variant: $e.data( 'chart-variant' ) || 'average',
         supplier: $e.data( 'supplier' ) || ''
       },
       cache: false,

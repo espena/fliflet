@@ -28,7 +28,18 @@
       $db = Factory::getDatabase();
       switch( $_GET[ 'ajax' ] ) {
         case 'overview':
-          echo( json_encode( $db->getOverview() ) );
+          $variant = empty( $_GET[ 'variant' ] ) ? 'average' : $_GET[ 'variant' ];
+          switch( $variant ) {
+            case 'median':
+              $json = json_encode( $db->getOverviewMedians() );
+              break;
+            case 'modal':
+              $json = json_encode( $db->getOverviewModals() );
+              break;
+            default:
+              $json = json_encode( $db->getOverviewAverages() );
+          }
+          echo( $json );
           break;
         case 'timeline':
           echo( json_encode( $db->getTimeline( isset( $_GET[ 'supplier' ] ) ? intval( $_GET[ 'supplier' ] ) : 0 ) ) );
