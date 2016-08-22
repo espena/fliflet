@@ -41,12 +41,17 @@
     }
     public function insertRecord( $record ) {
       $record[ 'case_num' ] = explode( '/', $record[ 'case_num' ] );
-      $record[ 'direction' ] = preg_replace( array( '/^TIL:\s+.*$/', '/^FRA:\s+.*$/' ), array( 'O', 'I' ), $record[ 'second_party' ] );
+      if( preg_match( '/^(TIL|FRA):/', $record[ 'second_party' ] ) ) {
+        $record[ 'direction' ] = preg_replace( array( '/^TIL:\s+.*$/', '/^FRA:\s+.*$/' ), array( 'O', 'I' ), $record[ 'second_party' ] );
+      }
+      else {
+        $record[ 'direction' ] = 'N/A';
+      }
       $record[ 'second_party' ] = preg_replace( '/^(TIL|FRA):\s+/', '', $record[ 'second_party' ] );
       $record[ 'doc_date' ] = $this->isoDate( $record[ 'doc_date' ] );
       $record[ 'jour_date' ] = $this->isoDate( $record[ 'jour_date' ] );
       $record[ 'pub_date' ] = $this->isoDate( $record[ 'pub_date' ] );
-      $sql = sprintf( "CALL insertRecord( %s, '%s', '%s', '%s', %s, %s, '%s', '%s', '%s', '%s', '%s', '%s', '%s' )",
+      $sql = sprintf( "CALL insertRecord( %s, '%s', '%s', '%s', %s, %s, '%s', '%s', '%s', '%s', %s, '%s', '%s', '%s' )",
                             $this->mDb->escape_string( $record[ 'id_supplier' ] ),
                             $this->mDb->escape_string( $record[ 'case_title' ] ),
                             $this->mDb->escape_string( $record[ 'doc_title' ] ),
@@ -57,6 +62,7 @@
                             $this->mDb->escape_string( $record[ 'doc_date' ] ),
                             $this->mDb->escape_string( $record[ 'jour_date' ] ),
                             $this->mDb->escape_string( $record[ 'pub_date' ] ),
+                            $record[ 'second_party' ] == 'Internt' ? 'TRUE' : 'FALSE',
                             $this->mDb->escape_string( $record[ 'direction' ] ),
                             $this->mDb->escape_string( $record[ 'second_party' ] ),
                             $this->mDb->escape_string( $record[ 'exception_basis' ] ) );
@@ -72,7 +78,7 @@
     public function getListSuppliers() {
       if( empty( $this->mSuppliers ) ) {
         $this->mSuppliers = array();
-        $sql = "SELECT * FROM supplier ORDER BY navn";
+        $sql = "SELECT * FROM supplier ORDER BY name";
         if( $res = $this->mDb->query( $sql ) ) {
           while( $row = $res->fetch_assoc() ) {
             $this->mSuppliers[] = $row;
@@ -106,7 +112,7 @@
         WHERE
           ( $supplierId = 0 OR id_supplier = $supplierId )
         AND
-          doc_date > '2015-12-31'
+          doc_date > '2013-12-31'
         AND
           doc_date < DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
         GROUP BY
@@ -135,7 +141,7 @@
               'data' => $dataJour ),
             array(
               'label' => 'Publisering',
-              'backgroundColor' => 'rgba(220,220,220,0.5)',
+              'backgroundColor' => 'rgba(200,200,200,0.5)',
               'data' => $dataPub )
           )
         ),
@@ -167,8 +173,8 @@
       return $this->getOverview( 'Medians', 'Journalføring og publisering i OEP fra 1/1-2016. Medianer, antall dager fra dokumentdato.' );
     }
 
-    public function getOverviewModals() {
-      return $this->getOverview( 'Modals', 'Journalføring og publisering i OEP fra 1/1-2016. Modusverdier, antall dager fra dokumentdato.' );
+    public function getOverviewModes() {
+      return $this->getOverview( 'Modes', 'Journalføring og publisering i OEP fra 1/1-2016. Modusverdier, antall dager fra dokumentdato.' );
     }
 
     private function getOverview( $stProc, $title ) {
@@ -212,7 +218,7 @@
               'data' => $dataJour ),
             array(
               'label' => 'Publisering',
-              'backgroundColor' => 'rgba(220,220,220,0.5)',
+              'backgroundColor' => 'rgba(200,200,200,0.5)',
               'data' => $dataPub
             )
           )

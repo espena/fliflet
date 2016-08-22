@@ -32,8 +32,17 @@
                : 5;
         printf( "%d scraped, waiting %d seconds...\n", $offset + $pageSize, $delay );
         sleep( $delay );
-        $url = sprintf( URLFMT_CHRONOLOGICAL_LOOKUP, $supplierId, $pageSize, $offset );
-        $html = file_get_contents( $url );
+        $url = sprintf( URLFMT_CHRONOLOGICAL_LOOKUP, $supplierId, $pageSize, $offset + 1 );
+        if( isset( $this->mConfig[ 'fiflet' ][ 'header_message' ] ) ) {
+          $ctx = stream_context_create( array(
+                                          'http' => array(
+                                            'method' => 'GET',
+                                            'header' => sprintf( 'User-Agent: %s\r\n', $this->mConfig[ 'fiflet' ][ 'header_message' ] ) ) ) );
+          $html = file_get_contents( $url, false, $ctx );
+        }
+        else {
+          $html = file_get_contents( $url );
+        }
         $domDoc = new DOMDocument();
         $domDoc->loadHTML( $html );
         $domXPath = new DOMXPath( $domDoc );

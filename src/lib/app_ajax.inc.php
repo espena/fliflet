@@ -33,8 +33,8 @@
             case 'median':
               $json = json_encode( $db->getOverviewMedians() );
               break;
-            case 'modal':
-              $json = json_encode( $db->getOverviewModals() );
+            case 'mode':
+              $json = json_encode( $db->getOverviewModes() );
               break;
             default:
               $json = json_encode( $db->getOverviewAverages() );
