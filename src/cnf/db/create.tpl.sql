@@ -110,45 +110,26 @@ BEGIN
   LIMIT
     10000;
 END;
-CREATE PROCEDURE regenStatistics()
+CREATE PROCEDURE realregenStatistics( _period CHAR( 7 ) )
 BEGIN
   DECLARE bDone INT;
   DECLARE _id_supplier INT UNSIGNED;
   DECLARE _name VARCHAR( 150 );
   DECLARE _startDate CHAR( 10 );
   DECLARE _critInternalDoc VARCHAR( 255 );
-  DECLARE curs CURSOR FOR SELECT DISTINCT id_supplier FROM supplier;
+  DECLARE curs CURSOR FOR SELECT 0 AS id_supplier UNION SELECT DISTINCT id_supplier FROM supplier;
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET bDone = 1;
-  DROP TABLE IF EXISTS statistics;
-  CREATE TABLE statistics(
-    id_supplier INT UNSIGNED PRIMARY KEY,
-    abbr_supplier VARCHAR( 30 ),
-    name_supplier VARCHAR( 150 ),
-    period CHAR( 7 ),
-    doc_count INT UNSIGNED,
-    max_doc_date DATE,
-    min_doc_date DATE,
-    median_doc2jour DOUBLE,
-    median_jour2pub DOUBLE,
-    median_doc2pub DOUBLE,
-    mode_v_doc2jour DOUBLE,
-    mode_v_jour2pub DOUBLE,
-    mode_v_doc2pub DOUBLE,
-    mode_p_doc2jour DOUBLE,
-    mode_p_jour2pub DOUBLE,
-    mode_p_doc2pub DOUBLE,
-    average_doc2jour DOUBLE,
-    average_jour2pub DOUBLE,
-    average_doc2pub DOUBLE );
   SET _startDate = '2015-01-01';
   REPLACE INTO
     statistics(
       id_supplier,
+      period,
       doc_count,
       max_doc_date,
       min_doc_date )
   SELECT
     id_supplier,
+    _period,
     COUNT( * ) AS doc_count,
     MAX( doc_date ) AS max_doc_date,
     MIN( doc_date ) AS min_doc_date
@@ -156,11 +137,31 @@ BEGIN
     journal
   WHERE
     doc_date BETWEEN _startDate AND DATE_SUB( CURRENT_DATE(), INTERVAL 2 MONTH )
+  AND
+    ( _period LIKE '0000-00' OR _period LIKE period )
   GROUP BY
     id_supplier;
+  REPLACE INTO
+    statistics(
+      id_supplier,
+      period,
+      doc_count,
+      max_doc_date,
+      min_doc_date )
+  SELECT
+    0 AS id_supplier,
+    _period,
+    COUNT( * ) AS doc_count,
+    MAX( doc_date ) AS max_doc_date,
+    MIN( doc_date ) AS min_doc_date
+  FROM
+    journal
+  WHERE
+    doc_date BETWEEN _startDate AND DATE_SUB( CURRENT_DATE(), INTERVAL 2 MONTH )
+  AND
+    ( _period LIKE '0000-00' OR _period LIKE period );
   OPEN curs;
   SET bDone = 0;
-  SET _critInternalDoc = ' AND d.internal = TRUE';
   REPEAT
     FETCH curs INTO _id_supplier;
     SET @diffFields = 'doc2jour,jour2pub,doc2pub,';
@@ -169,15 +170,18 @@ BEGIN
       SET @fldN = SUBSTRING( @diffFields, 1, LOCATE( ',', @diffFields ) - 1 );
       SET @diffFields = SUBSTRING( @diffFields, LOCATE( ',', @diffFields ) + 1 );
       SET @wherePart = CONCAT( '
-        d.id_supplier = ', _id_supplier, '
+          ( d.id_supplier = ', _id_supplier, ' OR ', _id_supplier, ' = 0 )
         AND
-        d.doc_date BETWEEN \'', _startDate, '\' AND DATE_SUB( CURRENT_DATE(), INTERVAL 2 MONTH )' );
+          (\'', _period, '\' LIKE \'0000-00\' OR d.period LIKE \'', _period, '\')
+        AND
+          d.doc_date BETWEEN \'', _startDate, '\' AND DATE_SUB( CURRENT_DATE(), INTERVAL 2 MONTH )' );
       SET @sqlCalcMedian = CONCAT( '
         UPDATE
           statistics AS m
             INNER JOIN (
               SELECT ',
                 _id_supplier, ' AS id_supplier,
+                \'', _period, '\' AS period,
                 AVG( t1.datediff_', @fldN, ' ) AS median_', @fldN, '
               FROM
               (
@@ -203,7 +207,7 @@ BEGIN
               ) AS t2
               WHERE
                 t1.row_number IN ( FLOOR( ( total_rows + 1 ) / 2 ), FLOOR( ( total_rows + 2 ) / 2 ) )
-            ) AS n ON ( m.id_supplier = n.id_supplier )
+            ) AS n ON ( m.id_supplier = n.id_supplier AND m.period = n.period )
         SET
           m.median_', @fldN, ' = n.median_', @fldN
       );
@@ -213,9 +217,10 @@ BEGIN
             INNER JOIN (
               SELECT ',
                 _id_supplier, ' AS id_supplier,
+                \'', _period, '\' AS period,
                 COUNT(*) AS cnt,
                 d.datediff_', @fldN, ' AS mode_v_', @fldN, ',
-                ROUND( COUNT( * ) * ( 100 / ( SELECT COUNT( * ) FROM journal WHERE id_supplier = ', _id_supplier, ' AND datediff_', @fldN, ' IS NOT NULL ) ) ) AS mode_p_', @fldN, '
+                ROUND( COUNT( * ) * ( 100 / ( SELECT COUNT( * ) FROM journal WHERE ( id_supplier = ', _id_supplier, ' OR ', _id_supplier, ' = 0 ) AND datediff_', @fldN, ' IS NOT NULL ) ) ) AS mode_p_', @fldN, '
               FROM
                 journal d
               WHERE
@@ -226,7 +231,7 @@ BEGIN
               ORDER BY
                 cnt DESC
               LIMIT 1 ) AS n
-                  ON ( m.id_supplier = n.id_supplier )
+                  ON ( m.id_supplier = n.id_supplier AND m.period = n.period )
         SET
           m.mode_v_', @fldN, ' = n.mode_v_', @fldN,',
           m.mode_p_', @fldN, ' = n.mode_p_', @fldN
@@ -244,6 +249,7 @@ BEGIN
           INNER JOIN (
             SELECT ',
               _id_supplier, ' AS id_supplier,
+              \'', _period, '\' AS period,
               AVG( d.datediff_doc2jour ) AS average_doc2jour,
               AVG( d.datediff_jour2pub ) AS average_jour2pub,
               AVG( d.datediff_doc2pub ) AS average_doc2pub
@@ -252,7 +258,7 @@ BEGIN
             WHERE ',
               @wherePart, '
             ) AS n
-                ON ( m.id_supplier = n.id_supplier )
+                ON ( m.id_supplier = n.id_supplier AND m.period = n.period )
       SET
         m.average_doc2jour = n.average_doc2jour,
         m.average_jour2pub = n.average_jour2pub,
@@ -261,6 +267,42 @@ BEGIN
     PREPARE stmCalcAverages FROM @sqlCalcAverages;
     EXECUTE stmCalcAverages;
     DEALLOCATE PREPARE stmCalcAverages;
+  UNTIL bDone END REPEAT;
+END;
+CREATE PROCEDURE regenStatistics()
+BEGIN
+  DECLARE bDone INT;
+  DECLARE _period CHAR( 7 );
+  DECLARE curs CURSOR FOR SELECT DISTINCT period FROM journal ORDER BY period;
+  DECLARE CONTINUE HANDLER FOR NOT FOUND SET bDone = 1;
+  DROP TABLE IF EXISTS statistics;
+  CREATE TABLE statistics(
+    id_supplier INT UNSIGNED,
+    period CHAR( 7 ),
+    abbr_supplier VARCHAR( 30 ),
+    name_supplier VARCHAR( 150 ),
+    doc_count INT UNSIGNED,
+    max_doc_date DATE,
+    min_doc_date DATE,
+    median_doc2jour DOUBLE,
+    median_jour2pub DOUBLE,
+    median_doc2pub DOUBLE,
+    mode_v_doc2jour DOUBLE,
+    mode_v_jour2pub DOUBLE,
+    mode_v_doc2pub DOUBLE,
+    mode_p_doc2jour DOUBLE,
+    mode_p_jour2pub DOUBLE,
+    mode_p_doc2pub DOUBLE,
+    average_doc2jour DOUBLE,
+    average_jour2pub DOUBLE,
+    average_doc2pub DOUBLE,
+    PRIMARY KEY idx_identity ( id_supplier, period ) );
+  CALL realRegenStatistics( '0000-00' );
+  OPEN curs;
+  SET bDone = 0;
+  REPEAT
+    FETCH curs INTO _period;
+    CALL realRegenStatistics( _period );
   UNTIL bDone END REPEAT;
   UPDATE
     statistics s
@@ -281,6 +323,7 @@ BEGIN
     s.abbr_supplier = k.gov_body,
     s.name_supplier = k.name;
 END;
+
 CREATE PROCEDURE overviewAverages()
 BEGIN
   SELECT
@@ -289,14 +332,18 @@ BEGIN
     abbr_supplier AS label,
     doc_count,
     average_doc2jour AS doc2jour,
-    average_doc2pub - average_doc2jour AS jour2pub,
+    average_jour2pub AS jour2pub,
     average_doc2pub AS doc2pub,
     max_doc_date AS max_date,
     min_doc_date AS min_date
   FROM
     statistics
+  WHERE
+    period LIKE '0000-00'
+  AND
+    id_supplier > 0
   ORDER BY
-    doc2pub DESC;
+    average_jour2pub DESC;
 END;
 
 CREATE PROCEDURE overviewMedians()
@@ -313,8 +360,12 @@ BEGIN
     min_doc_date AS min_date
   FROM
     statistics
+  WHERE
+    period LIKE '0000-00'
+  AND
+    id_supplier > 0
   ORDER BY
-    doc2pub DESC;
+    median_jour2pub DESC;
 END;
 
 CREATE PROCEDURE overviewModes()
@@ -331,8 +382,12 @@ BEGIN
     min_doc_date AS min_date
   FROM
     statistics
+  WHERE
+    period LIKE '0000-00'
+  AND
+    id_supplier > 0
   ORDER BY
-    doc2pub DESC;
+    mode_v_jour2pub DESC;
 END;
 
 CREATE PROCEDURE insertRecord( _id_supplier INT UNSIGNED,

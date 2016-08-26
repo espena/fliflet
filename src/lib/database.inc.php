@@ -41,13 +41,14 @@
     }
     public function insertRecord( $record ) {
       $record[ 'case_num' ] = explode( '/', $record[ 'case_num' ] );
-      if( preg_match( '/^(TIL|FRA):/', $record[ 'second_party' ] ) ) {
-        $record[ 'direction' ] = preg_replace( array( '/^TIL:\s+.*$/', '/^FRA:\s+.*$/' ), array( 'O', 'I' ), $record[ 'second_party' ] );
-      }
-      else {
+
+      //if( preg_match( '/^(TIL|FRA):/', $record[ 'second_party' ] ) ) {
+      //  $record[ 'direction' ] = preg_replace( array( '/^TIL:\s+.*$/', '/^FRA:\s+.*$/' ), array( 'O', 'I' ), $record[ 'second_party' ] );
+      //}
+      //else {
         $record[ 'direction' ] = 'N/A';
-      }
-      $record[ 'second_party' ] = preg_replace( '/^(TIL|FRA):\s+/', '', $record[ 'second_party' ] );
+      //}
+      //$record[ 'second_party' ] = preg_replace( '/^(TIL|FRA):\s+/', '', $record[ 'second_party' ] );
       $record[ 'doc_date' ] = $this->isoDate( $record[ 'doc_date' ] );
       $record[ 'jour_date' ] = $this->isoDate( $record[ 'jour_date' ] );
       $record[ 'pub_date' ] = $this->isoDate( $record[ 'pub_date' ] );
@@ -66,7 +67,12 @@
                             $this->mDb->escape_string( $record[ 'direction' ] ),
                             $this->mDb->escape_string( $record[ 'second_party' ] ),
                             $this->mDb->escape_string( $record[ 'exception_basis' ] ) );
-      $this->mDb->multi_query( $sql );
+      $success = $this->mDb->multi_query( $sql );
+      if( !$success ) {
+        echo( $this->mDb->error );
+        echo( $sql );
+        echo( "\n\n" );
+      }
       $this->flushResults();
     }
     public function isoDate( $dd_mm_yyyy ) {
@@ -105,22 +111,26 @@
       $sql =
        "SELECT
           period,
-          ROUND( AVG( DATEDIFF( jour_date, doc_date ) ) ) AS dager_jour,
-          ROUND( AVG( DATEDIFF( pub_date, doc_date ) ) ) AS dager_pub
+          mode_v_doc2jour AS dager_jour,
+          mode_v_jour2pub AS dager_pub
         FROM
-          journal
+          statistics
         WHERE
-          ( $supplierId = 0 OR id_supplier = $supplierId )
+          id_supplier = $supplierId
         AND
-          doc_date > '2013-12-31'
+          period NOT LIKE '0000-00'
         AND
-          doc_date < DATE_SUB( CURRENT_DATE(), INTERVAL 3 MONTH )
+          mode_v_doc2jour IS NOT NULL
+        AND
+          mode_v_jour2pub IS NOT NULL
         GROUP BY
           period
         ORDER BY
           period ASC";
       if( $res = $this->mDb->query( $sql ) ) {
         $labels = array();
+        $dataJour = array();
+        $dataPub = array();
         while( $row = $res->fetch_assoc() ) {
           $labels[] = $row[ 'period' ];
           $dataJour[] = $row[ 'dager_jour' ];
@@ -135,13 +145,15 @@
           'name' => 'timeline',
           'labels' => $labels,
           'datasets' => array(
+            /*
             array(
               'label' => 'Journalføring',
               'backgroundColor' => 'rgba(151,187,205,0.5)',
               'data' => $dataJour ),
+            */
             array(
-              'label' => 'Publisering',
-              'backgroundColor' => 'rgba(200,200,200,0.5)',
+              'label' => 'MODUSVERDI: Dager mellom journaldato og publisering',
+              'backgroundColor' => 'rgba(151,187,205,0.5)',
               'data' => $dataPub )
           )
         ),
@@ -166,15 +178,15 @@
     }
 
     public function getOverviewAverages() {
-      return $this->getOverview( 'Averages', 'Journalføring og publisering i OEP fra 1/1-2016. Gjennomsnitt, antall dager fra dokumentdato.' );
+      return $this->getOverview( 'Averages', 'GJENNOMSNITT: Fra journalføring til publisering i OEP fra 1/1-2015. Antall dager.' );
     }
 
     public function getOverviewMedians() {
-      return $this->getOverview( 'Medians', 'Journalføring og publisering i OEP fra 1/1-2016. Medianer, antall dager fra dokumentdato.' );
+      return $this->getOverview( 'Medians', 'MEDIAN: Fra journalføring til publisering i OEP fra 1/1-2015. Antall dager.' );
     }
 
     public function getOverviewModes() {
-      return $this->getOverview( 'Modes', 'Journalføring og publisering i OEP fra 1/1-2016. Modusverdier, antall dager fra dokumentdato.' );
+      return $this->getOverview( 'Modes', 'MODUS: Fra journalføring til publisering i OEP fra 1/1-2015. Antall dager.' );
     }
 
     private function getOverview( $stProc, $title ) {
@@ -213,23 +225,32 @@
           'dager_tot' => $dataTot,
           'datasets' => array(
             array(
-              'label' => 'Journalføring',
-              'backgroundColor' => 'rgba(151,187,205,0.5)',
+              'label' => 'Dokumentdato - journaldato',
+              'backgroundColor' => 'rgba(180,180,180,0.5)',
+              'borderWidth' => 0,
               'data' => $dataJour ),
+
             array(
-              'label' => 'Publisering',
-              'backgroundColor' => 'rgba(200,200,200,0.5)',
+              'label' => 'Dager mellom journaldato og publisering',
+              'backgroundColor' => 'rgba(151,187,205,0.5)',
+              'borderWidth' => 0,
               'data' => $dataPub
+            ),
+            array(
+              'label' => 'Dokumentdato - publiseringsdato',
+              'backgroundColor' => 'rgba(100,100,100,0.5)',
+              'borderWidth' => 0,
+              'data' => $dataTot
             )
           )
         ),
         'options' => array(
           'scales' => array(
             'xAxes' => array(
-              array( 'stacked' => TRUE )
+              array( 'stacked' => FALSE )
             ),
             'yAxes' => array(
-              array( 'stacked' => TRUE )
+              array( 'stacked' => FALSE )
             )
           ),
           'title' => array(

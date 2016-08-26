@@ -21,8 +21,8 @@ define( [
       userDefinedScale = Chart.scaleService.getScaleConstructor( "linear" ).extend( {
       buildTicks: function() {
         this.min = 0;
-        this.max = 70;
-        var stepWidth = 10;
+        this.max = 10;
+        var stepWidth = 1;
         this.ticks = [];
         for( var tickValue = this.min; tickValue <= this.max; tickValue += stepWidth ) {
           this.ticks.push( tickValue );
@@ -62,13 +62,8 @@ define( [
   function loadChart( i, e ) {
     var
       $e = $( e );
-    $.ajax( 'index.php', {
+    $.ajax( 'index.php?' + $e.data( 'chart-options' ), {
       context: e,
-      data: {
-        ajax: $e.data( 'chart-type' ) || 'overview',
-        variant: $e.data( 'chart-variant' ) || 'average',
-        supplier: $e.data( 'supplier' ) || ''
-      },
       cache: false,
       success: onChartData
     } );
@@ -81,11 +76,7 @@ define( [
 
   function onChartData( data ) {
     data.options.tooltips = {
-      callbacks: {
-        title: getChartTooltipTitle,
-        label: getChartTooltipLabel,
-        footer: getChartTooltipFooter
-      }
+      callbacks: { }
     };
     data.options.onClick = onClickChart;
     $( this ).each( function( i, canvas ) {
@@ -106,43 +97,12 @@ define( [
   }
 
   function getChartTooltipTitle( items, data ) {
-    switch( data.name ) {
-      case 'overview':
-        return data.longnames[ items[ 0 ].yLabel ];
-      default:
-        return data.labels[ items[ 0 ].index ];
-    }
   }
 
   function getChartTooltipLabel( items, data ) {
-    switch( data.name ) {
-      case 'overview':
-        var tooltipData = {
-          itemLabel: data.datasets[ items.datasetIndex ].label,
-          itemValue: data.datasets[ items.datasetIndex ].data[ items.index ],
-          itemTotal: data.dager_tot[ items.index ] };
-        return mustache.render( tmplOverviewTooltipBody, tooltipData ).trim().split( "\n" );
-      case 'timeline':
-        return data.datasets[ items.datasetIndex ].label + ': ' + data.datasets[ items.datasetIndex ].data[ items.index ] + ' dager';
-      default:
-        return data.datasets[ items.datasetIndex ].label + ': ' + data.datasets[ items.datasetIndex ].data[ items.index ];
-    }
   }
 
   function getChartTooltipFooter( items, data ) {
-    switch( data.name ) {
-      case 'overview':
-        var
-          dsi = items[ 0 ].datasetIndex,
-          di = items[ 0 ].index,
-          footerData = {
-            n: data.antall_dok[ di ],
-            dateFirstDoc: data.max_min_dato[ di ].min,
-            dateLastDoc: data.max_min_dato[ di ].max };
-        return mustache.render( tmplOverviewTooltipFooter, footerData );
-      default:
-        return '';
-    }
   }
 
   return {

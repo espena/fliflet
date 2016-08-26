@@ -26,7 +26,7 @@
     }
     private function getJson() {
       $db = Factory::getDatabase();
-      switch( $_GET[ 'ajax' ] ) {
+      switch( $_GET[ 'type' ] ) {
         case 'overview':
           $variant = empty( $_GET[ 'variant' ] ) ? 'average' : $_GET[ 'variant' ];
           switch( $variant ) {
