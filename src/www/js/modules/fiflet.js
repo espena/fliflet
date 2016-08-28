@@ -21,8 +21,9 @@ define( [
       userDefinedScale = Chart.scaleService.getScaleConstructor( "linear" ).extend( {
       buildTicks: function() {
         this.min = 0;
-        this.max = 10;
-        var stepWidth = 1;
+        this.max = 60;
+        this.suggestedMax = 20;
+        var stepWidth = 2;
         this.ticks = [];
         for( var tickValue = this.min; tickValue <= this.max; tickValue += stepWidth ) {
           this.ticks.push( tickValue );

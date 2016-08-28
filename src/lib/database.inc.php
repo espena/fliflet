@@ -5,6 +5,10 @@
     private $mConfig;
     private $mDb;
     private $mSuppliers;
+    private $mColorCodes = array(
+      'doc2jour' => 'rgba( 150, 180, 150, 0.5 )',
+      'jour2pub' => 'rgba( 151, 187, 205, 0.5 )',
+      'doc2pub'  => 'rgba( 200, 120, 120, 0.5 )' );
     public function __construct( $config ) {
       $this->mConfig = $config;
       if( isset( $this->mConfig[ 'mysql' ] ) ) {
@@ -41,14 +45,7 @@
     }
     public function insertRecord( $record ) {
       $record[ 'case_num' ] = explode( '/', $record[ 'case_num' ] );
-
-      //if( preg_match( '/^(TIL|FRA):/', $record[ 'second_party' ] ) ) {
-      //  $record[ 'direction' ] = preg_replace( array( '/^TIL:\s+.*$/', '/^FRA:\s+.*$/' ), array( 'O', 'I' ), $record[ 'second_party' ] );
-      //}
-      //else {
-        $record[ 'direction' ] = 'N/A';
-      //}
-      //$record[ 'second_party' ] = preg_replace( '/^(TIL|FRA):\s+/', '', $record[ 'second_party' ] );
+      $record[ 'direction' ] = 'N/A';
       $record[ 'doc_date' ] = $this->isoDate( $record[ 'doc_date' ] );
       $record[ 'jour_date' ] = $this->isoDate( $record[ 'jour_date' ] );
       $record[ 'pub_date' ] = $this->isoDate( $record[ 'pub_date' ] );
@@ -81,286 +78,79 @@
                 substr( $dd_mm_yyyy, 3, 2 ),
                 substr( $dd_mm_yyyy, 0, 2 ) );
     }
+    public function getOverview( $dataset, $aggregate, $sortcrit ) {
+      $sql = sprintf( "CALL getOverview( '%s', '%s', '%s' );", $dataset, $aggregate, $sortcrit );
+      $this->mDb->multi_query( $sql );
+      $data = array(
+        'labels'   => array(),
+        'datasets' => array()
+      );
+      $i = 0;
+      while( $this->mDb->more_results() ) {
+        $data[ 'datasets' ][ $i ] = array(
+          'label'           => $dataset,
+          'backgroundColor' => $this->mColorCodes[ $dataset ],
+          'borderWidth'     => '0',
+          'data'            => array() );
+        if( $res = $this->mDb->use_result() ) {
+          while( $row = $res->fetch_assoc() ) {
+            if( $i == 0 ) {
+              $data[ 'labels' ][] = $row[ 'label' ];
+            }
+            $data[ 'datasets' ][ $i ][ 'data' ][] = $row[ 'value' ];
+          }
+          $res->free();
+        }
+        $i++;
+        $this->mDb->next_result();
+      }
+      return $data;
+    }
+    public function getTimeline( $dataset, $aggregate, $idSupplier = 0 ) {
+      $sql = sprintf( "CALL getTimeline( '%s', '%s', %d );", $dataset, $aggregate, $idSupplier );
+      $this->mDb->multi_query( $sql );
+      $data = array(
+        'labels'   => array(),
+        'datasets' => array()
+      );
+      $i = 0;
+      while( $this->mDb->more_results() ) {
+        $data[ 'datasets' ][ $i ] = array(
+          'label'           => $dataset,
+          'backgroundColor' => $this->mColorCodes[ $dataset ],
+          'borderWidth'     => '0',
+          'data'            => array() );
+        if( $res = $this->mDb->use_result() ) {
+          while( $row = $res->fetch_assoc() ) {
+            if( $i == 0 ) {
+              $data[ 'labels' ][] = $row[ 'label' ];
+            }
+            $data[ 'datasets' ][ $i ][ 'data' ][] = $row[ 'value' ];
+          }
+          $res->free();
+        }
+        $i++;
+        $this->mDb->next_result();
+      }
+      return $data;
+    }
     public function getListSuppliers() {
       if( empty( $this->mSuppliers ) ) {
         $this->mSuppliers = array();
-        $sql = "SELECT * FROM supplier ORDER BY name";
-        if( $res = $this->mDb->query( $sql ) ) {
+        $this->mDb->multi_query( "CALL getListSuppliers()" );
+        if( $res = $this->getFirstResult() ) {
           while( $row = $res->fetch_assoc() ) {
             $this->mSuppliers[] = $row;
           }
           $res->free();
         }
+        $this->flushResults();
       }
       return $this->mSuppliers;
-    }
-    public function getStatsSupplier( $supplierId ) {
-      $statsSupplier = array();
-      $this->mDb->multi_query( "CALL statsOverview( $supplierId )" );
-      if( $res = $this->getFirstResult() ) {
-        while( $row = $res->fetch_assoc() ) {
-          $statsSupplier = $row;
-        }
-        $res->free();
-      }
-      $this->flushResults();
-      return $statsSupplier;
-    }
-    public function getTimeline( $supplierId = 0 ) {
-      $supplierId = intval( $supplierId );
-      $sql =
-       "SELECT
-          period,
-          mode_v_doc2jour AS dager_jour,
-          mode_v_jour2pub AS dager_pub
-        FROM
-          statistics
-        WHERE
-          id_supplier = $supplierId
-        AND
-          period NOT LIKE '0000-00'
-        AND
-          mode_v_doc2jour IS NOT NULL
-        AND
-          mode_v_jour2pub IS NOT NULL
-        GROUP BY
-          period
-        ORDER BY
-          period ASC";
-      if( $res = $this->mDb->query( $sql ) ) {
-        $labels = array();
-        $dataJour = array();
-        $dataPub = array();
-        while( $row = $res->fetch_assoc() ) {
-          $labels[] = $row[ 'period' ];
-          $dataJour[] = $row[ 'dager_jour' ];
-          $dataPub[] = $row[ 'dager_pub' ];
-        }
-        $res->free();
-      }
-      $title = 'Utvikling i journalføring og publisering i OEP';
-      return array(
-        'type' => 'line',
-        'data' => array (
-          'name' => 'timeline',
-          'labels' => $labels,
-          'datasets' => array(
-            /*
-            array(
-              'label' => 'Journalføring',
-              'backgroundColor' => 'rgba(151,187,205,0.5)',
-              'data' => $dataJour ),
-            */
-            array(
-              'label' => 'MODUSVERDI: Dager mellom journaldato og publisering',
-              'backgroundColor' => 'rgba(151,187,205,0.5)',
-              'data' => $dataPub )
-          )
-        ),
-        'options' => array(
-          'responsive' => TRUE,
-          'legend' => array(
-            'position' => 'top'
-          ),
-          'scales' => array(
-            'yAxes' => array(
-              array(
-                'type' => 'fifletY'
-              ),
-            )
-          ),
-          'title' => array(
-            'display' => TRUE,
-            'text' => $title
-          )
-        )
-      );
-    }
-
-    public function getOverviewAverages() {
-      return $this->getOverview( 'Averages', 'GJENNOMSNITT: Fra journalføring til publisering i OEP fra 1/1-2015. Antall dager.' );
-    }
-
-    public function getOverviewMedians() {
-      return $this->getOverview( 'Medians', 'MEDIAN: Fra journalføring til publisering i OEP fra 1/1-2015. Antall dager.' );
-    }
-
-    public function getOverviewModes() {
-      return $this->getOverview( 'Modes', 'MODUS: Fra journalføring til publisering i OEP fra 1/1-2015. Antall dager.' );
-    }
-
-    private function getOverview( $stProc, $title ) {
-      $dataJour = array();
-      $dataPub = array();
-      $dataTot = array();
-      $labels = array();
-      $longNames = array();
-      $supplierIds = array();
-      $this->mDb->multi_query( "CALL overview" . $stProc . "()" );
-      if( $res = $this->getFirstResult() ) {
-        while( $row = $res->fetch_assoc() ) {
-          $labels[] = $row[ 'label' ];
-          $longNames[ $row[ 'label' ] ] = $row[ 'name' ];
-          $supplierIds[ $row[ 'label' ] ] = $row[ 'id_supplier' ];
-          $dataJour[] = $row[ 'doc2jour' ];
-          $dataPub[] = $row[ 'jour2pub' ];
-          $dataTot[] = $row[ 'doc2pub' ];
-          $antallDok[] = $row[ 'doc_count' ];
-          $maxMinDato[] = array(
-            'max' => strftime( '%d.%m.%Y', strtotime( $row[ 'max_date' ] ) ),
-            'min' => strftime( '%d.%m.%Y', strtotime( $row[ 'min_date' ] ) ) );
-        }
-        $res->free();
-      }
-      $this->flushResults();
-      return array(
-        'type' => 'horizontalBar',
-        'data' => array(
-          'name' => 'overview',
-          'labels' => $labels,
-          'longnames' => $longNames,
-          'supplierIds' => $supplierIds,
-          'antall_dok' => $antallDok,
-          'max_min_dato' => $maxMinDato,
-          'dager_tot' => $dataTot,
-          'datasets' => array(
-            array(
-              'label' => 'Dokumentdato - journaldato',
-              'backgroundColor' => 'rgba(180,180,180,0.5)',
-              'borderWidth' => 0,
-              'data' => $dataJour ),
-
-            array(
-              'label' => 'Dager mellom journaldato og publisering',
-              'backgroundColor' => 'rgba(151,187,205,0.5)',
-              'borderWidth' => 0,
-              'data' => $dataPub
-            ),
-            array(
-              'label' => 'Dokumentdato - publiseringsdato',
-              'backgroundColor' => 'rgba(100,100,100,0.5)',
-              'borderWidth' => 0,
-              'data' => $dataTot
-            )
-          )
-        ),
-        'options' => array(
-          'scales' => array(
-            'xAxes' => array(
-              array( 'stacked' => FALSE )
-            ),
-            'yAxes' => array(
-              array( 'stacked' => FALSE )
-            )
-          ),
-          'title' => array(
-            'display' => TRUE,
-            'text' => $title
-          )
-        )
-      );
     }
     public function regenStatistics() {
       $this->mDb->multi_query( "CALL regenStatistics()" );
       $this->flushResults();
-    }
-    public function regenClouds() {
-      $suppliers = explode( ',', $this->mConfig[ 'fiflet' ][ 'suppliers_to_monitor' ] );
-      $suppliers[] = 0;
-      foreach( $suppliers as $supplierId ) {
-        $cloudFile = DIR_CACHE . sprintf( "/cloud_%d.json", $supplierId );
-        @unlink( $cloudFile );
-        $data = $this->realRegenClouds( $supplierId );
-        file_put_contents(
-          $cloudFile,
-          json_encode( $data ) );
-      }
-    }
-    private function realRegenClouds( $supplierId = 0 ) {
-      $data = array( array(), array() );
-      $cloud = array();
-      $this->mDb->multi_query( "CALL getCloudDatasets( $supplierId )" );
-      if( $this->mDb->more_results() ) {
-        if( $res0 = $this->mDb->store_result() ) {
-          $this->cloudPopulate( $cloud, $res0, FALSE );
-          $res0->free();
-        }
-      }
-      if( $this->mDb->more_results() ) {
-        if( $res1 = $this->mDb->store_result() ) {
-          $this->cloudPopulate( $cloud, $res1, TRUE );
-          $res1->free();
-        }
-      }
-      $this->flushResults();
-      foreach( $cloud as $text => $weight ) {
-        $data[  0 ][ ] = array(
-          'text' => $text,
-          'weight' => $weight,
-          'html' => array(
-            'title' => sprintf( "%d forekomster i 10.000 dokumenter", $weight )
-          ) );
-      }
-      $cloud = array();
-      $this->mDb->multi_query( "CALL getCloudDatasetsInv( $supplierId )" );
-      if( $this->mDb->more_results() ) {
-        if( $res0 = $this->mDb->store_result() ) {
-          $this->cloudPopulate( $cloud, $res0, FALSE );
-          $res0->free();
-        }
-      }
-      if( $this->mDb->more_results() ) {
-        if( $res1 = $this->mDb->store_result() ) {
-          $this->cloudPopulate( $cloud, $res1, TRUE );
-          $res1->free();
-        }
-      }
-      $this->flushResults();
-      foreach( $cloud as $text => $weight ) {
-        $data[  1 ][ ] = array(
-          'text' => $text,
-          'weight' => $weight,
-          'html' => array(
-          'title' => sprintf( "%d forekomster i 10.000 dokumenter", $weight )
-          ) );
-      }
-      return $data;
-    }
-    private function cloudPopulate( &$cloud, &$res, $reduce = FALSE ) {
-      $ignoredWords = array( 'avskjermet', 'norge', 'svar', 'notat', 'referat',
-                             'utkast', 'vedr',
-                             'spørsmål', 'vedrørende', 'brev', 'norsk', 'oversendelse',
-                             'kopi', 'over', 'draft', 'etter', 'henvendelse', 'ingen' );
-      while( $row = $res->fetch_assoc() ) {
-        $words = preg_split( '/[ \-\/]+/', $row[ 'doc_title' ] );
-        foreach( $words as $word ) {
-          if( array_search( $word, $ignoredWords ) !== FALSE ) {
-              continue;
-          }
-          if( strlen( $word ) > 3 && !is_numeric( $word ) ) {
-            if( isset( $cloud[ $word ] ) ) {
-              if( $reduce ) {
-                if( $cloud[ $word ] > 1 ) {
-                  $cloud[ $word ]--;
-                }
-                else {
-                  unset( $cloud[ $word ] );
-                }
-              }
-              else {
-                $cloud[ $word ]++;
-              }
-            }
-            else if( !$reduce ) {
-              $cloud[ $word ] = 1;
-            }
-          }
-        }
-      }
-      arsort( $cloud );
-      if( count( $cloud ) > 500 ) {
-        $cloud = array_slice( $cloud, 0, 500 );
-      }
     }
     private function getFirstResult() {
       $res = null;

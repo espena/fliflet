@@ -20,7 +20,7 @@ phpfpm:
   volumes:
     - ./src:/srv/fiflet
 mysql:
-  image: mysql
+  image: fiflet/mysql
   ports:
     - 3306
   volumes:
