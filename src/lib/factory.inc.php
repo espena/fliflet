@@ -5,6 +5,7 @@
   require_once( DIR_LIB . '/app_cli.inc.php' );
   require_once( DIR_LIB . '/app_web.inc.php' );
   require_once( DIR_LIB . '/app_ajax.inc.php' );
+  require_once( DIR_LIB . '/app_latex.inc.php' );
 
   class Factory {
     private static $mApp;
@@ -14,7 +15,11 @@
       if( empty( self::$mApp ) ) {
         self::$mApp = new AppBase();
         if( PHP_SAPI == 'cli' ) {
+          global $argc, $argv;
           self::$mApp = new AppCli( self::$mApp );
+          if( $argc > 1 && $argv[ 1 ] == 'latex' ) {
+            self::$mApp = new AppLatex( self::$mApp );
+          }
         }
         else {
           self::$mApp = new AppWeb( self::$mApp );

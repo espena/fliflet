@@ -6,31 +6,35 @@
   class AppAjax implements IApplication {
     private $mApp;
     private $mOverviewTitles = array(
+      '' => array(
+        'mean'   => 'Gjennomsnitt, antall virkedager mellom dokumentdato, journaldato og publisering',
+        'median' => 'Median, antall virkedager mellom dokumentdato, journaldato og publisering',
+        'mode_v' => 'Modus, antall virkedager mellom dokumentdato, journaldato og publisering' ),
       'doc2jour' => array(
-        'mean'   => 'Gjennomsnitt, antall dager mellom dokumentdato og journaldato',
-        'median' => 'Median, antall dager mellom dokumentdato og journaldato',
-        'mode_v' => 'Modus, antall dager mellom dokumentdato og journaldato' ),
+        'mean'   => 'Gjennomsnitt, antall virkedager mellom dokumentdato og journaldato',
+        'median' => 'Median, antall virkedager mellom dokumentdato og journaldato',
+        'mode_v' => 'Modus, antall virkedager mellom dokumentdato og journaldato' ),
       'jour2pub' => array(
-        'mean'   => 'Gjennomsnitt, antall dager mellom journaldato og publiseringsdato',
-        'median' => 'Median, antall dager mellom journaldato og publiseringsdato',
-        'mode_v' => 'Modus, antall dager mellom journaldato og publiseringsdato' ),
+        'mean'   => 'Gjennomsnitt, antall virkedager mellom journaldato og publiseringsdato',
+        'median' => 'Median, antall virkedager mellom journaldato og publiseringsdato',
+        'mode_v' => 'Modus, antall virkedager mellom journaldato og publiseringsdato' ),
       'doc2pub'  => array(
-        'mean'   => 'Gjennomsnitt, antall dager mellom dokumentdato og publiseringsdato',
-        'median' => 'Median, antall dager mellom dokumentdato og publiseringsdato',
-        'mode_v' => 'Modus, antall dager mellom dokumentdato og publiseringsdato' ) );
+        'mean'   => 'Gjennomsnitt, antall virkedager mellom dokumentdato og publiseringsdato',
+        'median' => 'Median, antall virkedager mellom dokumentdato og publiseringsdato',
+        'mode_v' => 'Modus, antall virkedager mellom dokumentdato og publiseringsdato' ) );
     private $mTimelineTitles = array(
       'doc2jour' => array(
-        'mean'   => 'Utvikling over tid, gjennomsnittlig antall dager mellom dokumentdato og journaldato',
-        'median' => 'Utvikling over tid, median, antall dager mellom dokumentdato og journaldato',
-        'mode_v' => 'Utvikling over tid, modus, antall dager mellom dokumentdato og journaldato' ),
+        'mean'   => 'Utvikling over tid, gjennomsnittlig antall virkedager mellom dokumentdato og journaldato',
+        'median' => 'Utvikling over tid, median, antall virkedager mellom dokumentdato og journaldato',
+        'mode_v' => 'Utvikling over tid, modus, antall virkedager mellom dokumentdato og journaldato' ),
       'jour2pub' => array(
-        'mean'   => 'Utvikling over tid, gjennomsnitt, antall dager mellom journaldato og publiseringsdato',
-        'median' => 'Utvikling over tid, median, antall dager mellom journaldato og publiseringsdato',
-        'mode_v' => 'Utvikling over tid, modus, antall dager mellom journaldato og publiseringsdato' ),
+        'mean'   => 'Utvikling over tid, gjennomsnitt, antall virkedager mellom journaldato og publiseringsdato',
+        'median' => 'Utvikling over tid, median, antall virkedager mellom journaldato og publiseringsdato',
+        'mode_v' => 'Utvikling over tid, modus, antall virkedager mellom journaldato og publiseringsdato' ),
       'doc2pub'  => array(
-        'mean'   => 'Utvikling over tid, gjennomsnitt, antall dager mellom dokumentdato og publiseringsdato',
-        'median' => 'Utvikling over tid, median, antall dager mellom dokumentdato og publiseringsdato',
-        'mode_v' => 'Utvikling over tid, modus, antall dager mellom dokumentdato og publiseringsdato' ) );
+        'mean'   => 'Utvikling over tid, gjennomsnitt, antall virkedager mellom dokumentdato og publiseringsdato',
+        'median' => 'Utvikling over tid, median, antall virkedager mellom dokumentdato og publiseringsdato',
+        'mode_v' => 'Utvikling over tid, modus, antall virkedager mellom dokumentdato og publiseringsdato' ) );
     public function __construct( $app ) {
       $this->mApp = $app;
     }
@@ -93,7 +97,7 @@
       return $this->getTimeline( 'doc2jour', 'median' );
     }
     private function getJsonTimelineDoc2jourMode() {
-      return $this->getTimeline( 'doc2jour', 'mode' );
+      return $this->getTimeline( 'doc2jour', 'mode_v' );
     }
     private function getJsonTimelineJour2pubMean() {
       return $this->getTimeline( 'doc2pub', 'mean' );
@@ -102,7 +106,7 @@
       return $this->getTimeline( 'jour2pub', 'median' );
     }
     private function getJsonTimelineJour2pubMode() {
-      return $this->getTimeline( 'jour2pub', 'mode' );
+      return $this->getTimeline( 'jour2pub', 'mode_v' );
     }
     private function getJsonTimelineDoc2pubMean() {
       return $this->getTimeline( 'doc2pub', 'mean' );
@@ -111,7 +115,15 @@
       return $this->getTimeline( 'doc2pub', 'median' );
     }
     private function getJsonTimelineDoc2pubMode() {
-      return $this->getTimeline( 'doc2pub', 'mode' );
+      return $this->getTimeline( 'doc2pub', 'mode_v' );
+    }
+    private function getIdSupplier() {
+      return empty( $_GET[ 'supplier' ] ) ? 0 : intval( $_GET[ 'supplier' ] );
+    }
+    private function getNameSupplier() {
+      $suppliers = Factory::getSuppliers( FALSE );
+      $idSupplier = $this->getIdSupplier();
+      return isset( $suppliers[ $idSupplier ] ) ? $suppliers[ $idSupplier ] : 'Alle';
     }
     private function getJsonOverview() {
       if( empty( $_GET[ 'dataset' ] ) ) {
@@ -122,6 +134,15 @@
         foreach( $tmpData as $v ) {
           $jsonData[ 'data' ][ 'datasets' ][] = $v[ 'data' ][ 'datasets' ][ 0 ];
         }
+        switch( $_GET[ 'aggregate' ] ) {
+          case 'mode':
+            $aggregate = 'mode_v';
+            break;
+          default:
+            $aggregate = $_GET[ 'aggregate' ];
+        }
+        $tit = $this->getNameSupplier() . ': ' . $this->mOverviewTitles[ '' ][ $aggregate ];
+        $jsonData[ 'options' ][ 'title' ][ 'text' ] = $tit;
       }
       else {
         $jsonData = $this->callReflectedGetJson( 'dataset' );
@@ -182,25 +203,35 @@
       $jsonData[ 'options' ] = array(
         'title' => array(
           'display' => TRUE,
-          'text' => $this->mOverviewTitles[ $dataset ][ $aggregate ] ) );
+          'text' => $this->mOverviewTitles[ $dataset ][ $aggregate ] ),
+        'scales' => array(
+          'xAxes' => array(
+            array(
+              'ticks' => array( 'beginAtZero' => TRUE )
+            ) ) ) );
       return $jsonData;
     }
     private function getTimeline( $dataset, $aggregate ) {
       $db = Factory::getDatabase();
-      $suppliers = Factory::getSuppliers( FALSE );
-      $idSupplier = empty( $_GET[ 'supplier' ] ) ? 0 : intval( $_GET[ 'supplier' ] );
-      $nameSupplier = ( isset( $suppliers[ $idSupplier ] ) ? $suppliers[ $idSupplier ] : 'Alle' );
+      $tit = $this->getNameSupplier() . ': ' . $this->mOverviewTitles[ $dataset ][ $aggregate ];
       $jsonData = array();
-      $jsonData[ 'data' ] = $db->getTimeline( $dataset, $aggregate, $idSupplier );
+      $jsonData[ 'data' ] = $db->getTimeline( $dataset, $aggregate, $this->getIdSupplier() );
       $jsonData[ 'options' ] = array(
+        'elements' => array(
+          'point' => array(
+            'radius' => 0
+          )
+        ),
+        'showXLabels' => 3,
         'title' => array(
           'display' => TRUE,
-          'text' => $nameSupplier . ': ' . $this->mTimelineTitles[ $dataset ][ $aggregate ] ),
+          'text' => $tit,
+        ),
         'scales' => array(
           'yAxes' => array(
             array(
               'type' => 'fifletY'
-               ) ) ) );
+            ) ) ) );
       return $jsonData;
     }
     private function getJsonError() {

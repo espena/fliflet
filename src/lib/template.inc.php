@@ -3,6 +3,7 @@
   define( 'TEMPLATE_INC_PATTERN', '/##([^#]+)##/' );
   define( 'TEMPLATE_FUNCTION_PATTERN', '/^([^\\(]+)\\(([^\\)]*)\\)$/' );
   class Template {
+    private static $mData = array();
     private $mTplText;
     public function __construct( $idt, $app = NULL ) {
       if( file_exists( $idt ) ) {
@@ -17,13 +18,18 @@
       $res = '';
       if( isset( $data[ 0 ] ) ) {
         for( $i = 0; $i < count( $data ); $i++ ) {
+          array_push( self::$mData, $data[ $i ] );
           $res .= $this->realRender( $data[ $i ] );
+          array_pop( self::$mData );
         }
       }
       else {
         $res = $this->realRender( $data );
       }
       return $res;
+    }
+    public static function getCurrentRecord() {
+      return current( self::$mData );
     }
     private function realRender( $data ) {
       $resolved = array();

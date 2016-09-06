@@ -5,10 +5,8 @@
     private $mConfig;
     private $mDb;
     private $mSuppliers;
-    private $mColorCodes = array(
-      'doc2jour' => 'rgba( 150, 180, 150, 0.5 )',
-      'jour2pub' => 'rgba( 151, 187, 205, 0.5 )',
-      'doc2pub'  => 'rgba( 200, 120, 120, 0.5 )' );
+    private $mMostDelayed;
+    private $mReport;
     public function __construct( $config ) {
       $this->mConfig = $config;
       if( isset( $this->mConfig[ 'mysql' ] ) ) {
@@ -89,7 +87,7 @@
       while( $this->mDb->more_results() ) {
         $data[ 'datasets' ][ $i ] = array(
           'label'           => $dataset,
-          'backgroundColor' => $this->mColorCodes[ $dataset ],
+          'backgroundColor' => $this->mConfig[ 'chartcolors' ][ $dataset ],
           'borderWidth'     => '0',
           'data'            => array() );
         if( $res = $this->mDb->use_result() ) {
@@ -115,11 +113,19 @@
       );
       $i = 0;
       while( $this->mDb->more_results() ) {
+        /*
         $data[ 'datasets' ][ $i ] = array(
-          'label'           => $dataset,
-          'backgroundColor' => $this->mColorCodes[ $dataset ],
-          'borderWidth'     => '0',
-          'data'            => array() );
+          'label'            => 'Dager totalt',
+          'backgroundColor'  => 'RGBA(220,220,220,0.0)',
+          'borderWidth'      => '1',
+          'borderColor'      => 'RGBA(50,50,50,0.3)',
+          'data'             => array() );
+        */
+        $data[ 'datasets' ][ $i ] = array(
+          'label'            => $dataset,
+          'backgroundColor'  => $this->mConfig[ 'chartcolors' ][ $dataset ],
+          'borderWidth'      => '0',
+          'data'             => array() );
         if( $res = $this->mDb->use_result() ) {
           while( $row = $res->fetch_assoc() ) {
             if( $i == 0 ) {
@@ -134,6 +140,32 @@
       }
       return $data;
     }
+    public function getMostDelayed() {
+      if( empty( $this->mMostDelayed ) ) {
+        $this->mMostDelayed = array();
+        $this->mDb->multi_query( "CALL getMostDelayed()" );
+        $i = 0;
+        while( $this->mDb->more_results() ) {
+          if( $res = $this->mDb->store_result() ) {
+            $this->mMostDelayed[ $i ] = array(
+              'rows' => array()
+            );
+            while( $row = $res->fetch_assoc() ) {
+              if( empty( $this->mMostDelayed[ $i ][ 'longname' ] ) ) {
+                $this->mMostDelayed[ $i ][ 'longname' ] = $row[ 'name' ];
+                $this->mMostDelayed[ $i ][ 'shortname' ] = $row[ 'gov_body' ];
+                $this->mMostDelayed[ $i ][ 'id_supplier' ] = $row[ 'id_supplier' ];
+              }
+              $this->mMostDelayed[ $i ][ 'rows' ][ ] = $row;
+            }
+            $res->free();
+          }
+          $i++;
+          $this->mDb->next_result();
+        }
+      }
+      return $this->mMostDelayed;
+    }
     public function getListSuppliers() {
       if( empty( $this->mSuppliers ) ) {
         $this->mSuppliers = array();
@@ -147,6 +179,24 @@
         $this->flushResults();
       }
       return $this->mSuppliers;
+    }
+    public function getReportSuppliers() {
+      if( empty( $this->mReport ) ) {
+        $this->mReport = array();
+        $this->mDb->multi_query( "CALL getReportSuppliers()" );
+        if( $res = $this->getFirstResult() ) {
+          while( $row = $res->fetch_assoc() ) {
+            $this->mReport[] = $row;
+          }
+          $res->free();
+        }
+        $this->flushResults();
+      }
+      return $this->mReport;
+    }
+    public function rebasePeriod( $dateField ) {
+      $this->mDb->multi_query( sprintf( "CALL rebasePeriod( '%s' )", $dateField ) );
+      $this->flushResults();
     }
     public function regenStatistics() {
       $this->mDb->multi_query( "CALL regenStatistics()" );

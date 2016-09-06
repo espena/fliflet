@@ -81,34 +81,127 @@ CREATE TABLE journal (
   direction ENUM( 'I', 'O', 'N/A' ),
   second_party TEXT,
   exception_basis VARCHAR( 150 ),
-  datediff_doc2jour INT UNSIGNED,
-  datediff_jour2pub INT UNSIGNED,
-  datediff_doc2pub INT UNSIGNED,
+  datediff_workdays_doc2jour INT UNSIGNED,
+  datediff_workdays_jour2pub INT UNSIGNED,
+  datediff_workdays_doc2pub INT UNSIGNED,
+  datediff_abs_doc2jour INT UNSIGNED,
+  datediff_abs_jour2pub INT UNSIGNED,
+  datediff_abs_doc2pub INT UNSIGNED,
   scrapetime TIMESTAMP,
   period CHAR( 7 ),
   INDEX idx_supplier ( id_supplier ),
-  UNIQUE INDEX uidx_doc_identity ( gov_body, case_year, case_num, doc_num )
-);
+  UNIQUE INDEX uidx_doc_identity ( gov_body, case_year, case_num, doc_num ),
+  INDEX idx_doc_date ( doc_date ),
+  INDEX idx_jour_date ( jour_date ),
+  INDEX idx_pub_date ( pub_date )
+) COMMENT 'doc_date';
 
 CREATE TABLE supplier (
   id_supplier INT UNSIGNED PRIMARY KEY,
   name VARCHAR( 150 )
 );
 
+CREATE FUNCTION periodBias() RETURNS VARCHAR( 10 )
+DETERMINISTIC
+BEGIN
+  DECLARE _bias VARCHAR( 10 );
+  SELECT
+    table_comment
+  INTO
+    _bias
+  FROM
+    INFORMATION_SCHEMA.TABLES
+  WHERE
+    table_schema = '%%database%%'
+  AND
+    table_name = 'journal';
+  RETURN _bias;
+END;
+
+CREATE FUNCTION easterSunday( _strYear CHAR( 4 ) ) RETURNS DATE
+DETERMINISTIC
+BEGIN
+
+  DECLARE _year INT;
+  DECLARE _a INT;
+  DECLARE _b INT;
+  DECLARE _c INT;
+  DECLARE _d INT;
+  DECLARE _e INT;
+  DECLARE _f INT;
+  DECLARE _g INT;
+  DECLARE _h INT;
+  DECLARE _i INT;
+  DECLARE _k INT;
+  DECLARE _l INT;
+  DECLARE _m INT;
+  DECLARE _n INT;
+  DECLARE _p INT;
+
+  SET _year = CAST( _strYear AS SIGNED );
+  SET _a = MOD( _year, 19 );
+  SET _b = FLOOR( _year / 100 );
+  SET _c = MOD( _year, 100 );
+  SET _d = FLOOR( _b / 4 );
+  SET _e = MOD( _b, 4 );
+  SET _f = FLOOR( ( _b + 8 ) / 25 );
+  SET _g = FLOOR( ( _b - _f + 1 ) / 3 );
+  SET _h = MOD( 19 * _a + _b - _d - _g + 15, 30 );
+  SET _i = FLOOR( _c / 4 );
+  SET _k = MOD( _c, 4 );
+  SET _l = MOD( 32 + 2 * _e + 2 * _i - _h - _k, 7 );
+  SET _m = FLOOR( ( _a + 11 * _h + 22 * _l ) / 451 );
+  SET _n = FLOOR( ( _h + _l - 7 * _m + 114 ) / 31 );
+  SET _p = MOD( _h + _l - 7 * _m + 114, 31 );
+  SET _p = _p + 1;
+
+  RETURN CONCAT( _strYear, '-', LPAD( CAST( _n AS CHAR ), 2, '0' ), '-', LPAD( CAST( _p AS CHAR ), 2, '0' ) );
+
+END;
+
+CREATE PROCEDURE rebasePeriod( _d ENUM( 'doc_date', 'jour_date', 'pub_date' ) )
+BEGIN
+  UPDATE journal SET period = NULL;
+  SET @sql = CONCAT( '
+    UPDATE
+      journal
+    SET
+      period = SUBSTRING( ', _d, ', 1, 7 )
+    WHERE
+      doc_date > \'1979-12-31\'
+    AND
+      doc_date <= jour_date
+    AND
+      jour_date <= pub_date
+    AND
+      pub_date <= CURRENT_DATE()' );
+  PREPARE stm FROM @sql;
+  EXECUTE stm;
+  DEALLOCATE PREPARE stm;
+  SET @sql = CONCAT( 'ALTER TABLE journal COMMENT \'', _d, '\'' );
+  PREPARE stm FROM @sql;
+  EXECUTE stm;
+  DEALLOCATE PREPARE stm;
+END;
+
 CREATE PROCEDURE createCalendarTable()
 BEGIN
 
-  DECLARE _dateCur DATE;
+  DECLARE _dateBgn DATE;
   DECLARE _dateEnd DATE;
+  DECLARE _dateCur DATE;
+  DECLARE _year CHAR( 4 );
+  DECLARE _easterSunday DATE;
 
   DROP TABLE IF EXISTS calendar;
   CREATE TABLE calendar (
     cal_date DATE NOT NULL PRIMARY KEY,
     workday BOOLEAN NOT NULL DEFAULT TRUE );
 
-  SET _dateCur = '2010-01-01';
-  SET _dateEnd = '2016-12-31';
+  SET _dateBgn = '1900-01-01';
+  SET _dateEnd = '2020-01-01';
 
+  SET _dateCur = _dateBgn;
   WHILE _dateCur <= _dateEnd DO
 
     INSERT INTO
@@ -123,26 +216,36 @@ BEGIN
 
   END WHILE;
 
-  UPDATE
-    calendar
-  SET
-    workday = FALSE
-  WHERE
-    cal_date IN(
-      '2010-01-01', '2010-04-01', '2010-04-02', '2010-04-05', '2010-05-01',
-      '2010-05-13', '2010-05-17', '2010-05-24',
-      '2011-01-01', '2011-04-21', '2011-04-22', '2011-04-25', '2011-05-01',
-      '2011-05-17', '2011-05-24', '2011-06-02', '2011-06-13', '2011-12-26',
-      '2012-01-01', '2012-04-05', '2012-04-06', '2012-04-09', '2012-05-01',
-      '2012-05-17', '2012-05-28', '2012-12-25', '2012-12-26',
-      '2013-01-01', '2013-03-28', '2013-03-29', '2013-04-01', '2013-05-01',
-      '2013-05-09', '2013-05-17', '2013-05-20', '2013-12-25', '2013-12-26',
-      '2014-01-01', '2014-04-17', '2014-04-18', '2014-04-21', '2014-05-01',
-      '2014-05-17', '2014-05-29', '2014-06-09', '2014-12-25', '2014-12-26',
-      '2015-01-01', '2015-04-02', '2015-04-03', '2015-04-06', '2015-05-01',
-      '2015-05-17', '2015-05-14', '2015-05-25', '2015-12-25', '2015-12-26',
-      '2016-01-01', '2016-03-24', '2016-03-25', '2016-03-28', '2016-05-01',
-      '2016-05-05', '2016-05-16', '2016-05-17', '2016-12-25', '2016-12-26' );
+  SET _dateCur = _dateBgn;
+  WHILE _dateCur <= _dateEnd DO
+
+    SET _year = YEAR( _dateCur );
+    SET _easterSunday = easterSunday( _year );
+
+    UPDATE
+      calendar
+    SET
+      workday = FALSE
+    WHERE
+      cal_date IN (
+        DATE_SUB( _easterSunday, INTERVAL 3 DAY ),
+        DATE_SUB( _easterSunday, INTERVAL 2 DAY ),
+        DATE_ADD( _easterSunday, INTERVAL 1 DAY ),
+        DATE_ADD( _easterSunday, INTERVAL 39 DAY ),
+        DATE_ADD( _easterSunday, INTERVAL 49 DAY ),
+        DATE_ADD( _easterSunday, INTERVAL 50 DAY ),
+        CONCAT( _year, '-01-01' ),
+        CONCAT( _year, '-05-01' ),
+        CONCAT( _year, '-05-17' ),
+        CONCAT( _year, '-12-25' ),
+        CONCAT( _year, '-12-26' ) );
+
+    SET _dateCur := _dateCur + INTERVAL 1 YEAR;
+
+  END WHILE;
+
+  ALTER TABLE calendar ADD INDEX idx_workday( workday );
+
 END;
 
 CALL createCalendarTable();
@@ -158,7 +261,9 @@ BEGIN
   FROM
     calendar
   WHERE
-    cal_date BETWEEN _d2 AND _d1
+    cal_date >= _d2
+  AND
+    cal_date < _d1
   AND
     workday = TRUE;
   RETURN _workdays;
@@ -182,7 +287,9 @@ BEGIN
         FROM
           journal
         WHERE
-          doc_date BETWEEN '2015-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 2 MONTH )
+          period IS NOT NULL
+        AND
+          pub_date BETWEEN '2011-01-01' AND DATE_SUB( CURRENT_DATE(), INTERVAL 2 MONTH )
         UNION
           SELECT
             '0000-00' AS period
@@ -202,7 +309,7 @@ BEGIN
 
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET _bDone = 1;
 
-  SET _startDate = '2015-01-01';
+  SET _startDate = '2011-01-01';
 
   DROP TABLE IF EXISTS statistics;
   CREATE TABLE statistics(
@@ -216,15 +323,27 @@ BEGIN
     median_doc2jour DOUBLE,
     median_jour2pub DOUBLE,
     median_doc2pub DOUBLE,
+    median_abs_doc2jour DOUBLE,
+    median_abs_jour2pub DOUBLE,
+    median_abs_doc2pub DOUBLE,
     mode_v_doc2jour DOUBLE,
     mode_v_jour2pub DOUBLE,
     mode_v_doc2pub DOUBLE,
+    mode_v_abs_doc2jour DOUBLE,
+    mode_v_abs_jour2pub DOUBLE,
+    mode_v_abs_doc2pub DOUBLE,
     mode_p_doc2jour DOUBLE,
     mode_p_jour2pub DOUBLE,
     mode_p_doc2pub DOUBLE,
     mean_doc2jour DOUBLE,
     mean_jour2pub DOUBLE,
     mean_doc2pub DOUBLE,
+    mean_abs_doc2jour DOUBLE,
+    mean_abs_jour2pub DOUBLE,
+    mean_abs_doc2pub DOUBLE,
+    stddev_doc2jour DOUBLE,
+    stddev_jour2pub DOUBLE,
+    stddev_doc2pub DOUBLE,
     PRIMARY KEY idx_identity ( id_supplier, period ) );
 
   OPEN _cursPeriod;
@@ -248,38 +367,60 @@ BEGIN
               doc_count,
               max_doc_date,
               min_doc_date,
+              stddev_doc2jour,
+              stddev_jour2pub,
+              stddev_doc2pub,
               mean_doc2jour,
               mean_jour2pub,
               mean_doc2pub,
+              mean_abs_doc2jour,
+              mean_abs_jour2pub,
+              mean_abs_doc2pub,
               median_doc2jour,
               median_jour2pub,
               median_doc2pub,
+              median_abs_doc2jour,
+              median_abs_jour2pub,
+              median_abs_doc2pub,
               mode_v_doc2jour,
               mode_v_jour2pub,
-              mode_v_doc2pub )
+              mode_v_doc2pub,
+              mode_v_abs_doc2jour,
+              mode_v_abs_jour2pub,
+              mode_v_abs_doc2pub )
           SELECT
             _id_supplier,
             _period,
             COUNT( * ) AS doc_count,
             MAX( doc_date ) AS max_doc_date,
             MIN( doc_date ) AS min_doc_date,
-            AVG( datediff_doc2jour ),
-            AVG( datediff_jour2pub ),
-            AVG( datediff_doc2pub ),
-            MEDIAN( datediff_doc2jour ),
-            MEDIAN( datediff_jour2pub ),
-            MEDIAN( datediff_doc2pub ),
-            STATS_MODE( datediff_doc2jour ),
-            STATS_MODE( datediff_jour2pub ),
-            STATS_MODE( datediff_doc2pub )
+            STDDEV_POP( datediff_workdays_doc2jour ),
+            STDDEV_POP( datediff_workdays_jour2pub ),
+            STDDEV_POP( datediff_workdays_doc2pub ),
+            AVG( datediff_workdays_doc2jour ),
+            AVG( datediff_workdays_jour2pub ),
+            AVG( datediff_workdays_doc2pub ),
+            AVG( datediff_abs_doc2jour ),
+            AVG( datediff_abs_jour2pub ),
+            AVG( datediff_abs_doc2pub ),
+            MEDIAN( datediff_workdays_doc2jour ),
+            MEDIAN( datediff_workdays_jour2pub ),
+            MEDIAN( datediff_workdays_doc2pub ),
+            MEDIAN( datediff_abs_doc2jour ),
+            MEDIAN( datediff_abs_jour2pub ),
+            MEDIAN( datediff_abs_doc2pub ),
+            STATS_MODE( datediff_workdays_doc2jour ),
+            STATS_MODE( datediff_workdays_jour2pub ),
+            STATS_MODE( datediff_workdays_doc2pub ),
+            STATS_MODE( datediff_abs_doc2jour ),
+            STATS_MODE( datediff_abs_jour2pub ),
+            STATS_MODE( datediff_abs_doc2pub )
           FROM
             journal
           WHERE
-            doc_date BETWEEN _startDate AND DATE_SUB( CURRENT_DATE(), INTERVAL 2 MONTH )
-          AND
             ( _id_supplier = 0 OR _id_supplier LIKE id_supplier )
           AND
-            ( _period LIKE '0000-00' OR _period LIKE period );
+            ( _period = period OR ( _period = '0000-00' AND period >= '2015-01' AND period < '2016-07-01' ) );
 
         UNTIL _bDone END REPEAT;
 
@@ -326,7 +467,14 @@ CREATE PROCEDURE insertRecord( _id_supplier INT UNSIGNED,
                                _second_party TEXT,
                                _exception_basis VARCHAR( 150 ) )
 BEGIN
-   REPLACE INTO
+  DECLARE _date_bias DATE;
+  SET @dateBiasCol = periodBias();
+  CASE @dateBiasCol
+    WHEN 'doc_date' THEN SET _date_bias = _doc_date;
+    WHEN 'jour_date' THEN SET _date_bias = _jour_date;
+    WHEN 'pub_date' THEN SET _date_bias = _pub_date;
+  END CASE;
+  REPLACE INTO
        journal (
          id_supplier,
          case_title,
@@ -358,13 +506,16 @@ BEGIN
      _direction,
      _second_party,
      _exception_basis,
-     CONCAT( SUBSTRING( _doc_date, 1, 4 ), '-', SUBSTRING( _doc_date, 6, 2 ) ) );
+     CONCAT( SUBSTRING( _date_bias, 1, 4 ), '-', SUBSTRING( _date_bias, 6, 2 ) ) );
   UPDATE
     journal
   SET
-    datediff_doc2jour = datediff_workdays( _jour_date, _doc_date ),
-    datediff_jour2pub = datediff_workdays( _pub_date, _jour_date ),
-    datediff_doc2pub = datediff_workdays( _pub_date, _doc_date )
+    datediff_abs_doc2jour = datediff( _jour_date, _doc_date ),
+    datediff_abs_jour2pub = datediff( _pub_date, _jour_date ),
+    datediff_abs_doc2pub = datediff( _pub_date, _doc_date ),
+    datediff_workdays_doc2jour = datediff_workdays( _jour_date, doc_date ),
+    datediff_workdays_jour2pub = datediff_workdays( _pub_date, _jour_date ),
+    datediff_workdays_doc2pub = datediff_workdays( _pub_date, _doc_date )
   WHERE
     gov_body = _gov_body
   AND
@@ -399,8 +550,55 @@ BEGIN
   SELECT * FROM supplier ORDER BY name;
 END;
 
+CREATE PROCEDURE getReportSuppliers()
+BEGIN
+SELECT
+  s.id_supplier,
+  s.name AS longname,
+  x.gov_body AS shortname,
+  ROUND( STDDEV_POP( j.datediff_workdays_doc2jour ), 1 ) AS stddev_doc2jour,
+  ROUND( STDDEV_POP( j.datediff_workdays_jour2pub ), 1 ) AS stddev_jour2pub,
+  ROUND( STDDEV_POP( j.datediff_workdays_doc2pub ), 1 ) AS stddev_doc2pub,
+  COUNT( * ) AS doc_count
+FROM
+  supplier s
+INNER JOIN
+  ( SELECT DISTINCT id_supplier, gov_body FROM journal ) x
+ON
+  ( s.id_supplier = x.id_supplier )
+INNER JOIN
+  journal j
+    ON ( j.id_supplier = s.id_supplier AND j.period >= '2014-01' )
+GROUP BY
+  s.id_supplier,
+  x.gov_body
+ORDER BY
+  s.name;
+END;
+
+CREATE PROCEDURE getMostDelayed( _id_supplier INT UNSIGNED )
+BEGIN
+  SELECT
+    gov_body,
+    doc_date,
+    jour_date,
+    pub_date,
+    datediff_workdays_doc2pub AS doc2pub,
+    doc_title
+  FROM
+    journal
+  WHERE
+    period IS NOT NULL
+  AND
+    ( _id_supplier = 0 OR _id_supplier = id_supplier )
+  ORDER BY
+    datediff_workdays_doc2pub
+  DESC
+    LIMIT 30;
+END;
+
 CREATE PROCEDURE getOverview(
-  dataset VARCHAR( 10 ),
+  dataset CHAR( 10 ),
   aggregate VARCHAR( 10 ),
   sortcrit VARCHAR( 10 ) )
 BEGIN
@@ -410,7 +608,8 @@ BEGIN
       id_supplier,
       name_supplier AS label_longname,
       abbr_supplier AS label, ',
-      aggregate, '_', dataset, ' AS value
+      aggregate, '_', dataset, ' AS value, ',
+      aggregate, '_abs_', dataset, ' AS value_abs
     FROM
       statistics
     WHERE
@@ -435,11 +634,16 @@ BEGIN
   SET @sql = CONCAT( '
     SELECT
       period AS label, ',
-      _aggregate, '_', _dataset, ' AS value
+      _aggregate, '_', _dataset, ' AS value, ',
+      _aggregate, '_abs_', _dataset, ' AS value_abs
     FROM
       statistics
     WHERE
       period NOT LIKE \'0000-00\'
+    AND
+      period >= \'2014-01\'
+    AND
+      doc_count > 500
     AND
       id_supplier = ', _id_supplier, '
     ORDER BY

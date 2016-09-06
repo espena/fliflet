@@ -21,9 +21,8 @@ define( [
       userDefinedScale = Chart.scaleService.getScaleConstructor( "linear" ).extend( {
       buildTicks: function() {
         this.min = 0;
-        this.max = 60;
-        this.suggestedMax = 20;
-        var stepWidth = 2;
+        this.max = 140;
+        var stepWidth = 10;
         this.ticks = [];
         for( var tickValue = this.min; tickValue <= this.max; tickValue += stepWidth ) {
           this.ticks.push( tickValue );
@@ -77,9 +76,8 @@ define( [
 
   function onChartData( data ) {
     data.options.tooltips = {
-      callbacks: { }
+      enabled: false
     };
-    data.options.onClick = onClickChart;
     $( this ).each( function( i, canvas ) {
       charts.push( new Chart( canvas, data ) );
     } );

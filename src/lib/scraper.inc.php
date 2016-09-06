@@ -49,6 +49,7 @@
         $tableRows = $domXPath->query( '//*[@id="content"]/tbody/tr' );
         $this->saveRows( $supplierId, $tableRows, $offset );
       }
+      $db->rebasePeriod( 'doc_date' );
     }
     private function saveRows( $supplierId, $tableRows, &$offset ) {
       $db = Factory::getDatabase();

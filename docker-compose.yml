@@ -19,6 +19,7 @@ phpfpm:
     - mysql
   volumes:
     - ./src:/srv/fiflet
+    - ../oep-rapport:/root/oep-rapport
 mysql:
   image: fiflet/mysql
   ports:
