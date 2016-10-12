@@ -31,6 +31,18 @@
     public static function getCurrentRecord() {
       return current( self::$mData );
     }
+    public function latex_escape( $str ) {
+      $str = html_entity_decode( $str, ENT_HTML5, 'UTF-8' );
+      $str = mb_decode_numericentity( $str, array( 0x0, 0x2FFFF, 0, 0xFFFF ), 'UTF-8');
+      return preg_replace( '/[\\#%&_\{\}\~\^]/i', '\\\\\0', $str );
+    }
+    public function latex_truncate( $str, $len = 30 ) {
+      if( strlen( $str ) > $len ) {
+        $tmp = explode( "\n", wordwrap( $str, $len ) );
+        $str = $tmp[ 0 ] . '\\ldots';
+      }
+      return $str;
+    }
     private function realRender( $data ) {
       $resolved = array();
       // Expand template includes
@@ -65,6 +77,9 @@
               foreach( $functions as $name => $params ) {
                 if( function_exists( $name ) ) {
                   $value = call_user_func_array( $name, array_merge( array( $value ), $params ) );
+                }
+                else if( method_exists( $this, $name ) ) {
+                  $value = call_user_func_array( array( $this, $name ), array_merge( array( $value ), $params ) );
                 }
               }
             }

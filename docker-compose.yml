@@ -12,7 +12,7 @@ nginx:
     - ./logs/nginx-access.log:/var/log/nginx/access.log
     - ./src:/srv/fiflet
 phpfpm:
-  image: php-fpm
+  image: fiflet/php-fpm
   ports:
     - "9000:9000"
   links:

@@ -1,6 +1,9 @@
   <section class="common">
     <section class="panels">
 
+      <canvas class="chart timeline" data-chart-options="ajax=timeline&amp;dataset=jour2pub&amp;aggregate=median&amp;supplier=164" width="400" height="200"></canvas>
+      <canvas class="chart timeline" data-chart-options="ajax=timeline&amp;dataset=jour2pub&amp;aggregate=mean&amp;supplier=164" width="400" height="200"></canvas>
+
       <canvas class="chart timeline" data-chart-options="ajax=timeline&amp;dataset=doc2pub&amp;aggregate=median&amp;supplier=91" width="400" height="200"></canvas>
 
 
