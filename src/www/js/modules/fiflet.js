@@ -14,6 +14,7 @@ define( [
     tmplOverviewTooltipFooter ) {
 
   var charts = [];
+  var $links = $( '<ul></ul>' );
 
   function initialize() {
     var
@@ -43,35 +44,50 @@ define( [
       }
     });
     Chart.scaleService.registerScaleType( "fifletY", userDefinedScale, userDefinedScaleDefaults );
+    $( '.links' ).append( $links );
     $( 'canvas.chart' ).each( loadChart );
-    $( '.cloud' ).each( loadCloud );
+    $( '.regen' ).click( function( e ) {
+      $( 'canvas.chart' ).each( regenGraphics );
+      e.preventDefault();
+      return false;
+    } );
   }
 
-  function loadCloud( i, e ) {
-    $.ajax( 'index.php', {
-      context: e,
-      data: {
-        ajax: 'cloud',
-        supplier: $( e ).data( 'supplier' ) || ''
-      },
-      cache: false,
-      success: onCloudData
-    } );
+  function regenGraphics( i, e ) {
+    var
+      $e = $( e ),
+      png = $e[ 0 ].toDataURL( 'image/png' ),
+      filename;
+    switch( $e.data( 'ajax' ) ) {
+      case 'overview':
+        filename = 'overview_' + $e.data( 'aggregate' ) + '_' + $e.data( 'dataset' ) + '_' + $e.data( 'order' ) + ( $e.data( 'direction' ) ? ( $e.data( 'direction' ) + '' ).toLowerCase() : 'io' ) + '.png';
+        break;
+      case 'timeline':
+        filename = 'timeline_' + $e.data( 'aggregate' ) + '_' + ( $e.data( 'supplier' ) || 'all' ) + '_' + ( $e.data( 'direction' ) ? ( $e.data( 'direction' ) + '' ).toLowerCase() : 'io' ) + '.png';
+        break;
+      default:
+        filename = 'gfx_unknown.png';
+    }
+    $.post( 'index.php', {
+      gfx: png,
+      name: filename } );
   }
 
   function loadChart( i, e ) {
     var
       $e = $( e );
-    $.ajax( 'index.php?' + $e.data( 'chart-options' ), {
-      context: e,
-      cache: false,
-      success: onChartData
-    } );
+    var q = $.param( $e.data() );
+    if( q ) {
+      $.ajax( 'index.php?' + q, {
+        context: e,
+        cache: false,
+        success: onChartData
+      } );
+    }
   }
 
-  function onCloudData( data ) {
-    var $e = $( this );
-    $e.jQCloud( data[ $e.data( 'cloud-index' ) ], { width: $e.width(), height: $e.height() } );
+  function onChartComplete( e ) {
+    debugger;
   }
 
   function onChartData( data ) {
@@ -85,14 +101,7 @@ define( [
   }
 
   function onClickChart( e, info ) {
-    if( info.length > 0 ) {
-      var
-        chIdx = $( e.target ).data( 'chartIndex' ),
-        chart = charts[ chIdx ],
-        label = chart.data.labels[ info[ 0 ]._index ],
-        supplierId = chart.data.supplierIds[ label ];
-      window.location = '?supplier=' + supplierId;
-    }
+    alert( 'ok' );
   }
 
   function getChartTooltipTitle( items, data ) {

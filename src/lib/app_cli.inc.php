@@ -26,7 +26,20 @@
       $this->mApp->doPostOperations();
     }
     private function main( $argc, $argv ) {
-      if( array_search( 'nuke-database', $argv ) !== FALSE ) {
+      if( array_search( 'help', $argv ) !== FALSE ) {
+        printf( "+-------------------------+------------------------------------------+\n" );
+        printf( "| Command                 | Description                              |\n" );
+        printf( "+-------------------------+------------------------------------------+\n" );
+        printf( "| latex appendix          | Regenerate latex code for appendix       |\n" );
+        printf( "| latex appendix-examples | Regenerate latex code for examples table |\n" );
+        printf( "| list-suppliers          | List available suppliers (cached)        |\n" );
+        printf( "| nuke-database           | Delete all data and recreate database    |\n" );
+        printf( "| scrape                  | Start scraping target (oep.no)           |\n" );
+        printf( "| regen-suppliers         | Refresh and output list of suppliers     |\n" );
+        printf( "| regen-statistics        | Create statistics for current database   |\n" );
+        printf( "+-------------------------+------------------------------------------+\n" );
+      }
+      else if( array_search( 'nuke-database', $argv ) !== FALSE ) {
         $db = Factory::getDatabase();
         $db->createDb();
         printf( "Database recreated.\n" );
@@ -42,10 +55,10 @@
       else if( array_search( 'list-suppliers', $argv ) !== FALSE ) {
         print_r( Factory::getSuppliers( FALSE ) );
       }
-      else if( array_search( 'regen-clouds', $argv ) !== FALSE ) {
+      else if( array_search( 'regen-directions', $argv ) !== FALSE ) {
         $db = Factory::getDatabase();
-        $db->regenClouds();
-        printf( "Word clouds regenerated\n" );
+        $db->setRecordsDirection();
+        printf( "Directions regenerated\n" );
       }
       else if( array_search( 'scrape', $argv ) !== FALSE ) {
         $scraper = new Scraper();

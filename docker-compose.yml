@@ -1,5 +1,5 @@
 nginx:
-  image: tutum/nginx
+  image: fiflet/nginx
   ports:
     - "8080:80"
   links:
@@ -11,6 +11,7 @@ nginx:
     - ./logs/nginx-error.log:/var/log/nginx/error.log
     - ./logs/nginx-access.log:/var/log/nginx/access.log
     - ./src:/srv/fiflet
+    - ../oep-rapport:/root/oep-rapport
 phpfpm:
   image: fiflet/php-fpm
   ports:

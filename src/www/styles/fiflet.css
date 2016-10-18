@@ -1,6 +1,9 @@
 body {
   font-family: Arial, sans-serif;
 }
+canvas {
+  margin: 30px 0;
+}
 article h1 {
   color: #444;
   font-size: 30px;

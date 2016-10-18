@@ -8,6 +8,7 @@
   define( 'DIR_LIB', '../lib' );
   define( 'DIR_TPL', '../tpl' );
   define( 'DIR_CNF', '../cnf' );
+  define( 'DIR_GFX', '../gfx' );
 
   require_once( DIR_LIB . '/factory.inc.php' );
 

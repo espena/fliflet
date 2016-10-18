@@ -5,14 +5,14 @@ Postjournal av %%longname|strtolower()%%.
 
 \begin{figure}[H]
 \hspace{-0.04\textwidth}
-\includegraphics[width=1.04\textwidth]{timeline_median_%%shortname|strtolower()%%}
+\includegraphics[width=1.04\textwidth]{timeline_median_%%id_supplier%%_io}
 \caption{Medgåtte virkedager i median mellom dokumentdato, journaldato og publiseringsdato for %%longname|strtolower()%%. Periodisert månedsvis etter dokumentdato.}
 \centering
 \end{figure}
 
 \begin{figure}[H]
 \hspace{-0.04\textwidth}
-\includegraphics[width=1.04\textwidth]{timeline_mean_%%shortname|strtolower()%%}
+\includegraphics[width=1.04\textwidth]{timeline_mean_%%id_supplier%%_io}
 \caption{Medgåtte virkedager i gjennomsnitt mellom dokumentdato, journaldato og publiseringsdato for %%longname|strtolower()%%. Periodisert månedsvis etter dokumentdato.}
 \centering
 \end{figure}

@@ -76,8 +76,8 @@
                 substr( $dd_mm_yyyy, 3, 2 ),
                 substr( $dd_mm_yyyy, 0, 2 ) );
     }
-    public function getOverview( $dataset, $aggregate, $sortcrit ) {
-      $sql = sprintf( "CALL getOverview( '%s', '%s', '%s' );", $dataset, $aggregate, $sortcrit );
+    public function getOverview( $dataset, $aggregate, $sortcrit, $direction = 'IO' ) {
+      $sql = sprintf( "CALL getOverview( '%s', '%s', '%s', '%s' );", $dataset, $aggregate, $sortcrit, $direction );
       $this->mDb->multi_query( $sql );
       $data = array(
         'labels'   => array(),
@@ -104,8 +104,46 @@
       }
       return $data;
     }
-    public function getTimeline( $dataset, $aggregate, $idSupplier = 0 ) {
-      $sql = sprintf( "CALL getTimeline( '%s', '%s', %d );", $dataset, $aggregate, $idSupplier );
+    public function setRecordsDirection(  ) {
+      $directions = array();
+      $res = $this->mDb->query( 'SELECT j.id_journal, j.second_party, s.name AS name_supplier FROM journal j NATURAL JOIN supplier s', MYSQLI_USE_RESULT );
+      if( $res ) {
+        while( $row = $res->fetch_assoc() ) {
+          $direction = $this->findRecordDirection( $row[ 'second_party' ], $row[ 'name_supplier' ] );
+          if( $direction != 'N/A' ) {
+            $directions[ $row[ 'id_journal' ] ] = $direction;
+          }
+        }
+        $res->close();
+      }
+      foreach( $directions as $id => $direction ) {
+        $this->mDb->query( "UPDATE journal SET direction = '$direction' WHERE id_journal = $id" );
+      }
+    }
+    private function findRecordDirection( $secondParty, $nameSupplier ) {
+      preg_match( '/(TIL:\s*)(.*?)\s*?(FRA:|$)/m', $secondParty, $to );
+      preg_match( '/(FRA:\s*)(.*?)\s*?(TIL:|$)/m', $secondParty, $from );
+      $to = count( $to ) == 4 ? $to[ 2 ] : NULL;
+      $from = count( $from ) == 4 ? $from[ 2 ] : NULL;
+      if( $to && $to == $nameSupplier ) {
+        $direction = 'I';
+      }
+      else if( $from && $from == $nameSupplier ) {
+        $direction = 'O';
+      }
+      else if( $to && !$from ) {
+        $direction = 'O';
+      }
+      else if( $from && !$to ) {
+        $direction = 'I';
+      }
+      else {
+        $direction = 'N/A';
+      }
+      return $direction;
+    }
+    public function getTimeline( $dataset, $aggregate, $idSupplier = 0, $direction = 'IO' ) {
+      $sql = sprintf( "CALL getTimeline( '%s', '%s', %d, '%s' );", $dataset, $aggregate, $idSupplier, $direction );
       $this->mDb->multi_query( $sql );
       $data = array(
         'labels'   => array(),

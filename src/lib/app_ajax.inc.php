@@ -5,36 +5,6 @@
 
   class AppAjax implements IApplication {
     private $mApp;
-    private $mOverviewTitles = array(
-      '' => array(
-        'mean'   => 'Gjennomsnitt, antall virkedager mellom dokumentdato, journaldato og publisering',
-        'median' => 'Median, antall virkedager mellom dokumentdato, journaldato og publisering',
-        'mode_v' => 'Modus, antall virkedager mellom dokumentdato, journaldato og publisering' ),
-      'doc2jour' => array(
-        'mean'   => 'Gjennomsnitt, antall virkedager mellom dokumentdato og journaldato',
-        'median' => 'Median, antall virkedager mellom dokumentdato og journaldato',
-        'mode_v' => 'Modus, antall virkedager mellom dokumentdato og journaldato' ),
-      'jour2pub' => array(
-        'mean'   => 'Gjennomsnitt, antall virkedager mellom journaldato og publiseringsdato',
-        'median' => 'Median, antall virkedager mellom journaldato og publiseringsdato',
-        'mode_v' => 'Modus, antall virkedager mellom journaldato og publiseringsdato' ),
-      'doc2pub'  => array(
-        'mean'   => 'Gjennomsnitt, antall virkedager mellom dokumentdato og publiseringsdato',
-        'median' => 'Median, antall virkedager mellom dokumentdato og publiseringsdato',
-        'mode_v' => 'Modus, antall virkedager mellom dokumentdato og publiseringsdato' ) );
-    private $mTimelineTitles = array(
-      'doc2jour' => array(
-        'mean'   => 'Utvikling over tid, gjennomsnittlig antall virkedager mellom dokumentdato og journaldato',
-        'median' => 'Utvikling over tid, median, antall virkedager mellom dokumentdato og journaldato',
-        'mode_v' => 'Utvikling over tid, modus, antall virkedager mellom dokumentdato og journaldato' ),
-      'jour2pub' => array(
-        'mean'   => 'Utvikling over tid, gjennomsnitt, antall virkedager mellom journaldato og publiseringsdato',
-        'median' => 'Utvikling over tid, median, antall virkedager mellom journaldato og publiseringsdato',
-        'mode_v' => 'Utvikling over tid, modus, antall virkedager mellom journaldato og publiseringsdato' ),
-      'doc2pub'  => array(
-        'mean'   => 'Utvikling over tid, gjennomsnitt, antall virkedager mellom dokumentdato og publiseringsdato',
-        'median' => 'Utvikling over tid, median, antall virkedager mellom dokumentdato og publiseringsdato',
-        'mode_v' => 'Utvikling over tid, modus, antall virkedager mellom dokumentdato og publiseringsdato' ) );
     public function __construct( $app ) {
       $this->mApp = $app;
     }
@@ -141,7 +111,7 @@
           default:
             $aggregate = $_GET[ 'aggregate' ];
         }
-        $tit = $this->getNameSupplier() . ': ' . $this->mOverviewTitles[ '' ][ $aggregate ];
+        $tit = $_GET[ '' ];
         $jsonData[ 'options' ][ 'title' ][ 'text' ] = $tit;
       }
       else {
@@ -197,13 +167,15 @@
     }
     private function getOverview( $dataset, $aggregate ) {
       $db = Factory::getDatabase();
+      $tit = $_GET[ 'description' ];
+      $direction = empty( $_GET[ 'direction' ] ) ? 'IO' : $_GET[ 'direction' ];
       $sortcrit = empty( $_GET[ 'order' ] ) ? 'doc2pub' : preg_replace( '/[^a-z0-9]/', '', $_GET[ 'order' ] );
       $jsonData = array();
-      $jsonData[ 'data' ] = $db->getOverView( $dataset, $aggregate, $sortcrit );
+      $jsonData[ 'data' ] = $db->getOverView( $dataset, $aggregate, $sortcrit, $direction );
       $jsonData[ 'options' ] = array(
         'title' => array(
           'display' => TRUE,
-          'text' => $this->mOverviewTitles[ $dataset ][ $aggregate ] ),
+          'text' => $tit ),
         'scales' => array(
           'xAxes' => array(
             array(
@@ -213,9 +185,10 @@
     }
     private function getTimeline( $dataset, $aggregate ) {
       $db = Factory::getDatabase();
-      $tit = $this->getNameSupplier() . ': ' . $this->mOverviewTitles[ $dataset ][ $aggregate ];
+      $tit = $_GET[ 'description' ];
+      $direction = empty( $_GET[ 'direction' ] ) ? 'IO' : $_GET[ 'direction' ];
       $jsonData = array();
-      $jsonData[ 'data' ] = $db->getTimeline( $dataset, $aggregate, $this->getIdSupplier() );
+      $jsonData[ 'data' ] = $db->getTimeline( $dataset, $aggregate, $this->getIdSupplier(), $direction );
       $jsonData[ 'options' ] = array(
         'elements' => array(
           'point' => array(

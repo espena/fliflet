@@ -275,9 +275,11 @@ BEGIN
   DECLARE _startDate DATE;
   DECLARE _period CHAR( 7 );
   DECLARE _id_supplier INT UNSIGNED;
+  DECLARE _direction VARCHAR( 2 );
 
   DECLARE _bDone BOOL;
   DECLARE _bDoneTmp BOOL;
+  DECLARE _bDoneTmp2 BOOL;
 
   DECLARE
     _cursPeriod
@@ -306,6 +308,18 @@ BEGIN
         UNION
           SELECT
             0 AS id_supplier;
+
+  DECLARE
+    _cursDirection
+      CURSOR FOR
+        SELECT
+          'IO' AS direction
+        UNION
+          SELECT
+            'I' AS direction
+        UNION
+          SELECT
+            'O' AS direction;
 
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET _bDone = 1;
 
@@ -344,7 +358,8 @@ BEGIN
     stddev_doc2jour DOUBLE,
     stddev_jour2pub DOUBLE,
     stddev_doc2pub DOUBLE,
-    PRIMARY KEY idx_identity ( id_supplier, period ) );
+    direction ENUM( 'I', 'O', 'IO' ),
+    PRIMARY KEY idx_identity ( id_supplier, period, direction ) );
 
   OPEN _cursPeriod;
 
@@ -359,68 +374,84 @@ BEGIN
         REPEAT
 
           FETCH _cursSupplier INTO _id_supplier;
+          SET _bDoneTmp2 = _bDone;
+          OPEN _cursDirection;
 
-          REPLACE INTO
-            statistics(
-              id_supplier,
-              period,
-              doc_count,
-              max_doc_date,
-              min_doc_date,
-              stddev_doc2jour,
-              stddev_jour2pub,
-              stddev_doc2pub,
-              mean_doc2jour,
-              mean_jour2pub,
-              mean_doc2pub,
-              mean_abs_doc2jour,
-              mean_abs_jour2pub,
-              mean_abs_doc2pub,
-              median_doc2jour,
-              median_jour2pub,
-              median_doc2pub,
-              median_abs_doc2jour,
-              median_abs_jour2pub,
-              median_abs_doc2pub,
-              mode_v_doc2jour,
-              mode_v_jour2pub,
-              mode_v_doc2pub,
-              mode_v_abs_doc2jour,
-              mode_v_abs_jour2pub,
-              mode_v_abs_doc2pub )
-          SELECT
-            _id_supplier,
-            _period,
-            COUNT( * ) AS doc_count,
-            MAX( doc_date ) AS max_doc_date,
-            MIN( doc_date ) AS min_doc_date,
-            STDDEV_POP( datediff_workdays_doc2jour ),
-            STDDEV_POP( datediff_workdays_jour2pub ),
-            STDDEV_POP( datediff_workdays_doc2pub ),
-            AVG( datediff_workdays_doc2jour ),
-            AVG( datediff_workdays_jour2pub ),
-            AVG( datediff_workdays_doc2pub ),
-            AVG( datediff_abs_doc2jour ),
-            AVG( datediff_abs_jour2pub ),
-            AVG( datediff_abs_doc2pub ),
-            MEDIAN( datediff_workdays_doc2jour ),
-            MEDIAN( datediff_workdays_jour2pub ),
-            MEDIAN( datediff_workdays_doc2pub ),
-            MEDIAN( datediff_abs_doc2jour ),
-            MEDIAN( datediff_abs_jour2pub ),
-            MEDIAN( datediff_abs_doc2pub ),
-            STATS_MODE( datediff_workdays_doc2jour ),
-            STATS_MODE( datediff_workdays_jour2pub ),
-            STATS_MODE( datediff_workdays_doc2pub ),
-            STATS_MODE( datediff_abs_doc2jour ),
-            STATS_MODE( datediff_abs_jour2pub ),
-            STATS_MODE( datediff_abs_doc2pub )
-          FROM
-            journal
-          WHERE
-            ( _id_supplier = 0 OR _id_supplier LIKE id_supplier )
-          AND
-            ( _period = period OR ( _period = '0000-00' AND period >= '2015-01' AND period < '2016-07-01' ) );
+            SET _bDone = 0;
+            REPEAT
+
+              FETCH _cursDirection INTO _direction;
+
+              REPLACE INTO
+                statistics(
+                  id_supplier,
+                  period,
+                  doc_count,
+                  max_doc_date,
+                  min_doc_date,
+                  stddev_doc2jour,
+                  stddev_jour2pub,
+                  stddev_doc2pub,
+                  mean_doc2jour,
+                  mean_jour2pub,
+                  mean_doc2pub,
+                  mean_abs_doc2jour,
+                  mean_abs_jour2pub,
+                  mean_abs_doc2pub,
+                  median_doc2jour,
+                  median_jour2pub,
+                  median_doc2pub,
+                  median_abs_doc2jour,
+                  median_abs_jour2pub,
+                  median_abs_doc2pub,
+                  mode_v_doc2jour,
+                  mode_v_jour2pub,
+                  mode_v_doc2pub,
+                  mode_v_abs_doc2jour,
+                  mode_v_abs_jour2pub,
+                  mode_v_abs_doc2pub,
+                  direction )
+              SELECT
+                _id_supplier,
+                _period,
+                COUNT( * ) AS doc_count,
+                MAX( doc_date ) AS max_doc_date,
+                MIN( doc_date ) AS min_doc_date,
+                STDDEV_POP( datediff_workdays_doc2jour ),
+                STDDEV_POP( datediff_workdays_jour2pub ),
+                STDDEV_POP( datediff_workdays_doc2pub ),
+                AVG( datediff_workdays_doc2jour ),
+                AVG( datediff_workdays_jour2pub ),
+                AVG( datediff_workdays_doc2pub ),
+                AVG( datediff_abs_doc2jour ),
+                AVG( datediff_abs_jour2pub ),
+                AVG( datediff_abs_doc2pub ),
+                MEDIAN( datediff_workdays_doc2jour ),
+                MEDIAN( datediff_workdays_jour2pub ),
+                MEDIAN( datediff_workdays_doc2pub ),
+                MEDIAN( datediff_abs_doc2jour ),
+                MEDIAN( datediff_abs_jour2pub ),
+                MEDIAN( datediff_abs_doc2pub ),
+                STATS_MODE( datediff_workdays_doc2jour ),
+                STATS_MODE( datediff_workdays_jour2pub ),
+                STATS_MODE( datediff_workdays_doc2pub ),
+                STATS_MODE( datediff_abs_doc2jour ),
+                STATS_MODE( datediff_abs_jour2pub ),
+                STATS_MODE( datediff_abs_doc2pub ),
+                _direction
+              FROM
+                journal
+              WHERE
+                ( _id_supplier = 0 OR _id_supplier LIKE id_supplier )
+              AND
+                ( _period = period OR ( _period = '0000-00' AND period >= '2015-01' AND period < '2016-07-01' ) )
+              AND
+                ( _direction = direction OR _direction = 'IO' );
+
+            UNTIL _bDone END REPEAT;
+
+          CLOSE _cursDirection;
+          SET _bDone = _bDoneTmp2;
 
         UNTIL _bDone END REPEAT;
 
@@ -619,7 +650,8 @@ END;
 CREATE PROCEDURE getOverview(
   dataset CHAR( 10 ),
   aggregate VARCHAR( 10 ),
-  sortcrit VARCHAR( 10 ) )
+  sortcrit VARCHAR( 10 ),
+  _direction ENUM( 'IO', 'I', 'O' ) )
 BEGIN
 
   SET @sql = CONCAT( '
@@ -635,6 +667,8 @@ BEGIN
       period LIKE \'0000-00\'
     AND
       id_supplier > 0
+    AND
+      ( direction = \'IO\' OR direction = \'', _direction, '\' )
     ORDER BY ',
       aggregate, '_', sortcrit, ' DESC' );
 
@@ -647,7 +681,8 @@ END;
 CREATE PROCEDURE getTimeline(
   _dataset VARCHAR( 10 ),
   _aggregate VARCHAR( 10 ),
-  _id_supplier INT UNSIGNED )
+  _id_supplier INT UNSIGNED,
+  _direction ENUM( 'IO', 'I', 'O' ) )
 BEGIN
 
   SET @sql = CONCAT( '
@@ -662,9 +697,11 @@ BEGIN
     AND
       period >= \'2014-01\'
     AND
-      doc_count > 500
+      doc_count > 100
     AND
       id_supplier = ', _id_supplier, '
+    AND
+      direction = \'', _direction, '\'
     ORDER BY
       period ASC' );
 

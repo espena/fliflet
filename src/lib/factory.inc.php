@@ -6,6 +6,8 @@
   require_once( DIR_LIB . '/app_web.inc.php' );
   require_once( DIR_LIB . '/app_ajax.inc.php' );
   require_once( DIR_LIB . '/app_latex.inc.php' );
+  require_once( DIR_LIB . '/app_gfx.inc.php' );
+  require_once( DIR_LIB . '/app_latex.inc.php' );
 
   class Factory {
     private static $mApp;
@@ -25,6 +27,9 @@
           self::$mApp = new AppWeb( self::$mApp );
           if( isset( $_GET[ 'ajax' ] ) ) {
             self::$mApp = new AppAjax( self::$mApp );
+          }
+          else if( isset( $_POST[ 'gfx' ] ) ) {
+            self::$mApp = new AppGfx( self::$mApp );
           }
         }
       }
