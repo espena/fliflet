@@ -27,7 +27,7 @@
           $db = Factory::getDatabase();
           return $this->mApp->tpl( $idt, $db->getListSuppliers(), true );
         default:
-          return $this->mApp->tpl( $idt, $data, $returnResult );
+          return $this->mApp->tpl( $idt, $data, true );
       }
     }
     public function doPostOperations() {

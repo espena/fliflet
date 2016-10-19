@@ -187,6 +187,7 @@
       $db = Factory::getDatabase();
       $tit = $_GET[ 'description' ];
       $direction = empty( $_GET[ 'direction' ] ) ? 'IO' : $_GET[ 'direction' ];
+      $scaleType = empty( $_GET[ 'scale' ] ) ? 'fifletY' : $_GET[ 'scale' ];
       $jsonData = array();
       $jsonData[ 'data' ] = $db->getTimeline( $dataset, $aggregate, $this->getIdSupplier(), $direction );
       $jsonData[ 'options' ] = array(
@@ -203,7 +204,7 @@
         'scales' => array(
           'yAxes' => array(
             array(
-              'type' => 'fifletY'
+              'type' => $scaleType
             ) ) ) );
       return $jsonData;
     }

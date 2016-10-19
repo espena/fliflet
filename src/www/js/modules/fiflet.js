@@ -20,30 +20,56 @@ define( [
     var
       userDefinedScaleDefaults = Chart.scaleService.getScaleDefaults( "linear" ),
       userDefinedScale = Chart.scaleService.getScaleConstructor( "linear" ).extend( {
-      buildTicks: function() {
-        this.min = 0;
-        this.max = 140;
-        var stepWidth = 10;
-        this.ticks = [];
-        for( var tickValue = this.min; tickValue <= this.max; tickValue += stepWidth ) {
-          this.ticks.push( tickValue );
+        buildTicks: function() {
+          this.min = 0;
+          this.max = 140;
+          var stepWidth = 10;
+          this.ticks = [];
+          for( var tickValue = this.min; tickValue <= this.max; tickValue += stepWidth ) {
+            this.ticks.push( tickValue );
+          }
+          if( this.options.position == "left" || this.options.position == "right" ) {
+            this.ticks.reverse();
+          }
+          if( this.options.ticks.reverse ) {
+            this.ticks.reverse();
+            this.start = this.max;
+            this.end = this.min;
+          }
+          else {
+            this.start = this.min;
+            this.end = this.max;
+          }
+          this.zeroLineIndex = this.ticks.indexOf( 0 );
         }
-        if( this.options.position == "left" || this.options.position == "right" ) {
-          this.ticks.reverse();
+      }),
+      userDefinedScaleSmall = Chart.scaleService.getScaleConstructor( "linear" ).extend( {
+        buildTicks: function() {
+          this.min = 0;
+          this.max = 140;
+          var stepWidth = 20;
+          this.ticks = [];
+          for( var tickValue = this.min; tickValue <= this.max; tickValue += stepWidth ) {
+            this.ticks.push( tickValue );
+          }
+          if( this.options.position == "left" || this.options.position == "right" ) {
+            this.ticks.reverse();
+          }
+          if( this.options.ticks.reverse ) {
+            this.ticks.reverse();
+            this.start = this.max;
+            this.end = this.min;
+          }
+          else {
+            this.start = this.min;
+            this.end = this.max;
+          }
+          this.zeroLineIndex = this.ticks.indexOf( 0 );
         }
-        if( this.options.ticks.reverse ) {
-          this.ticks.reverse();
-          this.start = this.max;
-          this.end = this.min;
-        }
-        else {
-          this.start = this.min;
-          this.end = this.max;
-        }
-        this.zeroLineIndex = this.ticks.indexOf( 0 );
-      }
-    });
+      });
     Chart.scaleService.registerScaleType( "fifletY", userDefinedScale, userDefinedScaleDefaults );
+    Chart.scaleService.registerScaleType( "fifletY_small", userDefinedScaleSmall, userDefinedScaleDefaults );
+
     $( '.links' ).append( $links );
     $( 'canvas.chart' ).each( loadChart );
     $( '.regen' ).click( function( e ) {
@@ -60,10 +86,10 @@ define( [
       filename;
     switch( $e.data( 'ajax' ) ) {
       case 'overview':
-        filename = 'overview_' + $e.data( 'aggregate' ) + '_' + $e.data( 'dataset' ) + '_' + $e.data( 'order' ) + ( $e.data( 'direction' ) ? ( $e.data( 'direction' ) + '' ).toLowerCase() : 'io' ) + '.png';
+        filename = 'overview_' + $e.data( 'aggregate' ) + '_' + $e.data( 'dataset' ) + '_' + $e.data( 'order' ) + '_' + ( $e.data( 'direction' ) ? ( $e.data( 'direction' ) + '' ).toLowerCase() : 'io' ) + ( $e.data( 'suffix' ) ? '_' + $e.data( 'suffix' ) : '' ) + '.png';
         break;
       case 'timeline':
-        filename = 'timeline_' + $e.data( 'aggregate' ) + '_' + ( $e.data( 'supplier' ) || 'all' ) + '_' + ( $e.data( 'direction' ) ? ( $e.data( 'direction' ) + '' ).toLowerCase() : 'io' ) + '.png';
+        filename = 'timeline_' + $e.data( 'aggregate' ) + '_' + ( $e.data( 'supplier' ) || 'all' ) + '_' + ( $e.data( 'direction' ) ? ( $e.data( 'direction' ) + '' ).toLowerCase() : 'io' ) + ( $e.data( 'suffix' ) ? '_' + $e.data( 'suffix' ) : '' ) + '.png';
         break;
       default:
         filename = 'gfx_unknown.png';

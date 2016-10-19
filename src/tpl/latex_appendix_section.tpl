@@ -1,3 +1,4 @@
+\clearpage
 \subsubsection{%%longname%%}
 
 Basert på \num{%%doc_count%%} dokumenter publisert i Offentlig Elektronisk
@@ -8,6 +9,21 @@ Postjournal av %%longname|strtolower()%%.
 \includegraphics[width=1.04\textwidth]{timeline_median_%%id_supplier%%_io}
 \caption{Medgåtte virkedager i median mellom dokumentdato, journaldato og publiseringsdato for %%longname|strtolower()%%. Periodisert månedsvis etter dokumentdato.}
 \centering
+\label{timeline_median_%%id_supplier%%_io}
+\end{figure}
+\begin{figure}[H]
+\centering
+\begin{minipage}{.5\textwidth}
+  \centering
+  \includegraphics[width=.9\linewidth]{timeline_median_%%id_supplier%%_i_small}
+  \emph{Inngående korrespondanse}
+\end{minipage}%
+\begin{minipage}{.5\textwidth}
+  \includegraphics[width=.9\linewidth]{timeline_median_%%id_supplier%%_o_small}
+  \centering
+  \emph{Utgående korrespondanse}
+\end{minipage}
+\caption{Samme som over, men fordelt på inngående og utgående dokumenter. Medgåtte virkedager i median mellom dokumentdato, journaldato og publiseringdato.}
 \end{figure}
 
 \begin{figure}[H]
@@ -15,6 +31,21 @@ Postjournal av %%longname|strtolower()%%.
 \includegraphics[width=1.04\textwidth]{timeline_mean_%%id_supplier%%_io}
 \caption{Medgåtte virkedager i gjennomsnitt mellom dokumentdato, journaldato og publiseringsdato for %%longname|strtolower()%%. Periodisert månedsvis etter dokumentdato.}
 \centering
+\label{timeline_mean_%%id_supplier%%_io}
+\end{figure}
+\begin{figure}[H]
+\centering
+\begin{minipage}{.5\textwidth}
+  \centering
+  \includegraphics[width=.9\linewidth]{timeline_mean_%%id_supplier%%_i_small}
+  \emph{Inngående korrespondanse}
+\end{minipage}%
+\begin{minipage}{.5\textwidth}
+  \includegraphics[width=.9\linewidth]{timeline_mean_%%id_supplier%%_o_small}
+  \centering
+  \emph{Utgående korrespondanse}
+\end{minipage}
+\caption{Samme som over, men fordelt på inngående og utgående dokumenter. Medgåtte virkedager i gjennomsnitt mellom dokumentdato, journaldato og publiseringdato.}
 \end{figure}
 
 Dersom rutinene for publisering fra et organ ligger fast og skjer etter et relativt
