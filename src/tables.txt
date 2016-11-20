@@ -1,0 +1,26 @@
+\begin{figure}[H]
+\begin{tabu} to \textwidth { lr }
+  \toprule
+ 	\textbf{Departement} & \textbf{Gj.\,snitt dok.\.dato $\rightarrow$ pub.\.dato}\\
+ 	\midrule
+  JD & 39.63819685\\
+BLD & 20.422523729\\
+FD & 17.436084987\\
+UD & 17.256550069\\
+KD & 17.079985466\\
+KLD & 16.782162701\\
+NFD & 14.034988392\\
+FIN & 12.769406682\\
+LMD & 12.363803836\\
+OED & 11.582915067\\
+HOD & 11.052425463\\
+AD & 10.909731809\\
+KUD & 10.472622104\\
+KMD & 9.763689403\\
+SD & 9.218335667\\
+
+  \bottomrule
+\end{tabu}
+\caption{\emph{ Gjennomsnittlig tid i antall virkedager mellom dokumentdato og publisering i OEP. }}
+\centering
+\end{figure}

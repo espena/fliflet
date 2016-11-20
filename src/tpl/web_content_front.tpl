@@ -24,6 +24,19 @@
         class="chart overview"
         data-ajax="overview"
         data-aggregate="mean"
+        data-dataset="doc2pub"
+        data-order="doc2pub"
+        data-milestone-value="4"
+        data-milestone-label="4 dager"
+        data-description="Gjennomsnitt, antall virkedager mellom dokumentdato og publisering"
+        width="900"
+        height="450">
+      </canvas>
+
+      <canvas
+        class="chart overview"
+        data-ajax="overview"
+        data-aggregate="mean"
         data-dataset="doc2jour"
         data-order="doc2jour"
         data-description="Gjennomsnitt, antall virkedager mellom dokumentdato og journalføring"

@@ -104,6 +104,34 @@
       }
       return $data;
     }
+    public function getOverviewTable( $dataset, $sortcrit, $direction = 'IO' ) {
+      $sql = sprintf( "CALL getOverviewTable( '%s', '%s', '%s' );", $dataset, $sortcrit, $direction );
+      $this->mDb->multi_query( $sql );
+      $data = array(
+        'labels'   => array(),
+        'datasets' => array()
+      );
+      $i = 0;
+      while( $this->mDb->more_results() ) {
+        $data[ 'datasets' ][ $i ] = array(
+          'label'           => $dataset,
+          'backgroundColor' => $this->mConfig[ 'chartcolors' ][ $dataset ],
+          'borderWidth'     => '0',
+          'data'            => array() );
+        if( $res = $this->mDb->use_result() ) {
+          while( $row = $res->fetch_assoc() ) {
+            if( $i == 0 ) {
+              $data[ 'labels' ][] = $row[ 'label' ];
+            }
+            $data[ 'datasets' ][ $i ][ 'data' ][] = $row[ 'value' ];
+          }
+          $res->free();
+        }
+        $i++;
+        $this->mDb->next_result();
+      }
+      return $data;
+    }
     public function setRecordsDirection(  ) {
       $directions = array();
       $res = $this->mDb->query( 'SELECT j.id_journal, j.second_party, s.name AS name_supplier FROM journal j NATURAL JOIN supplier s', MYSQLI_USE_RESULT );
@@ -203,6 +231,11 @@
         }
       }
       return $this->mMostDelayed;
+    }
+    public function getTables() {
+      return array(
+        'table_1' => $this->getOverview( 'doc2pub', 'mean', 'doc2pub' )
+      );
     }
     public function getListSuppliers() {
       if( empty( $this->mSuppliers ) ) {

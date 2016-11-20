@@ -1,33 +1,32 @@
-DROP PROCEDURE IF EXISTS getTimeline;
+DROP PROCEDURE IF EXISTS getOverviewTable;
 
 DELIMITER //
 
-CREATE PROCEDURE getTimeline(
-  _dataset VARCHAR( 10 ),
-  _aggregate VARCHAR( 10 ),
-  _id_supplier INT UNSIGNED,
+CREATE PROCEDURE getOverviewTable(
+  _dataset CHAR( 10 ),
+  _sortcrit VARCHAR( 10 ),
   _direction ENUM( 'IO', 'I', 'O' ) )
 BEGIN
 
   SET @sql = CONCAT( '
     SELECT
-      period AS label, ',
-      _aggregate, '_', _dataset, ' AS value, ',
-      _aggregate, '_abs_', _dataset, ' AS value_abs
+      id_supplier,
+      name_supplier AS label_longname,
+      abbr_supplier AS label, ',
+      'ROUND(mean_', _dataset, ', 2) AS mean, ',
+      'ROUND(mean_abs_', _dataset, ', 2) AS mean_abs, ',
+      'median_', _dataset, ' AS median, ',
+      'median_abs_', _dataset, ' AS median_abs
     FROM
       statistics
     WHERE
-      period NOT LIKE \'0000-00\'
+      period LIKE \'0000-00\'
     AND
-      period >= \'2014-01\'
+      id_supplier > 0
     AND
-      doc_count > 100
-    AND
-      id_supplier = ', _id_supplier, '
-    AND
-      direction = \'', _direction, '\'
+      ( direction = \'IO\' OR direction = \'', _direction, '\' )
     ORDER BY
-      period ASC' );
+      mean_', _sortcrit, ' DESC' );
 
   PREPARE stm FROM @sql;
   EXECUTE stm;

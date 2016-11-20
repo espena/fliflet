@@ -1,0 +1,1 @@
+%%label%% & %%mean_value%%\\

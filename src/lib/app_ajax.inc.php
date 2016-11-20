@@ -118,6 +118,9 @@
         $jsonData = $this->callReflectedGetJson( 'dataset' );
       }
       $jsonData[ 'type' ] = 'horizontalBar';
+      if( !empty( $_GET[ 'milestoneValue' ] ) && !empty( $_GET[ 'milestoneLabel' ] ) ) {
+        $jsonData[ 'milestones' ] = array( array( 'value' => $_GET[ 'milestoneValue' ], 'color' => '#444444', 'label' => $_GET[ 'milestoneLabel' ] ) );
+      }
       return $jsonData;
     }
     private function getJsonOverviewMean() {
