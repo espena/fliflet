@@ -107,29 +107,16 @@
     public function getOverviewTable( $dataset, $sortcrit, $direction = 'IO' ) {
       $sql = sprintf( "CALL getOverviewTable( '%s', '%s', '%s' );", $dataset, $sortcrit, $direction );
       $this->mDb->multi_query( $sql );
-      $data = array(
-        'labels'   => array(),
-        'datasets' => array()
-      );
-      $i = 0;
-      while( $this->mDb->more_results() ) {
-        $data[ 'datasets' ][ $i ] = array(
-          'label'           => $dataset,
-          'backgroundColor' => $this->mConfig[ 'chartcolors' ][ $dataset ],
-          'borderWidth'     => '0',
-          'data'            => array() );
+      $data = array();
+      if( $this->mDb->more_results() ) {
         if( $res = $this->mDb->use_result() ) {
           while( $row = $res->fetch_assoc() ) {
-            if( $i == 0 ) {
-              $data[ 'labels' ][] = $row[ 'label' ];
-            }
-            $data[ 'datasets' ][ $i ][ 'data' ][] = $row[ 'value' ];
+            array_push( $data, $row );
           }
           $res->free();
         }
-        $i++;
-        $this->mDb->next_result();
       }
+      $this->flushResults();
       return $data;
     }
     public function setRecordsDirection(  ) {

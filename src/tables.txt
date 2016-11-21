@@ -1,26 +1,26 @@
 \begin{figure}[H]
-\begin{tabu} to \textwidth { lr }
+\begin{tabu} to \textwidth { lrr }
   \toprule
- 	\textbf{Departement} & \textbf{Gj.\,snitt dok.\.dato $\rightarrow$ pub.\.dato}\\
+ 	\textbf{Departement} & \textbf{Gj.\,snitt} & \textbf{Median}\\
  	\midrule
-  JD & 39.63819685\\
-BLD & 20.422523729\\
-FD & 17.436084987\\
-UD & 17.256550069\\
-KD & 17.079985466\\
-KLD & 16.782162701\\
-NFD & 14.034988392\\
-FIN & 12.769406682\\
-LMD & 12.363803836\\
-OED & 11.582915067\\
-HOD & 11.052425463\\
-AD & 10.909731809\\
-KUD & 10.472622104\\
-KMD & 9.763689403\\
-SD & 9.218335667\\
+  Justis- og beredskapsdepartementet (JD) & 39.64 & 27\\
+Barne- og likestillingsdepartementet (BLD) & 20.42 & 10\\
+Forsvarsdepartementet (FD) & 17.44 & 13\\
+Utenriksdepartementet (UD) & 17.26 & 7\\
+Kunnskapsdepartementet (KD) & 17.08 & 9\\
+Klima- og miljødepartementet (KLD) & 16.78 & 4\\
+Nærings- og fiskeridepartementet (NFD) & 14.03 & 7\\
+Finansdepartementet (FIN) & 12.77 & 9\\
+Landbruks- og matdepartementet (LMD) & 12.36 & 7\\
+Olje- og energidepartementet (OED) & 11.58 & 9\\
+Helse- og omsorgsdepartementet (HOD) & 11.05 & 8\\
+Arbeids- og sosialdepartementet (AD) & 10.91 & 7\\
+Kulturdepartementet (KUD) & 10.47 & 7\\
+Kommunal- og moderniseringsdepartementet (KMD) & 9.76 & 6\\
+Samferdselsdepartementet (SD) & 9.22 & 6\\
 
   \bottomrule
 \end{tabu}
-\caption{\emph{ Gjennomsnittlig tid i antall virkedager mellom dokumentdato og publisering i OEP. }}
+\caption{\emph{ Tid i antall virkedager mellom dokumentdato og publisering i OEP. Gjennomsnitt og median. }}
 \centering
 \end{figure}

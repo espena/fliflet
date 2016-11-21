@@ -25,10 +25,10 @@
           $curRec = Template::getCurrentRecord();
           $tpl = new Template( 'latex_appendix_examples_row' );
           return $tpl->render( $curRec[ 'rows' ] );
-        case 'tables_row_1':
+        case 'overview_table_row':
           $curRec = Template::getCurrentRecord();
-          $tpl = new Template( 'latex_tables_row_1' );
-          return $tpl->render( $curRec[ 'table_1' ] );
+          $tpl = new Template( 'latex_overview_table_row' );
+          return $tpl->render( $curRec[ 'rows' ] );
         default:
           return $this->mApp->tpl( $idt, $data, $returnResult );
       }
@@ -40,10 +40,10 @@
       switch( $doc ) {
         case 'appendix':
           return $this->getLatexAppendix();
-        case 'appendix_examples':
+        case 'appendix-examples':
           return $this->getLatexExamples();
-        case 'tables':
-          return $this->getLatexTables();
+        case 'overview-table':
+          return $this->getLatexOverviewTable();
         default:
           ;
       }
@@ -63,15 +63,10 @@
       return $tpl->render( $examples );
     }
 
-    private function getLatexTables() {
+    private function getLatexOverviewTable() {
       $db = Factory::getDatabase();
-      $tables = $db->getTables();
-      $labels = $tables[ 'table_1' ][ 'labels' ];
-      $data = array( 'table_1' => array() );
-      for( $i = 0; $i < count( $labels ); $i++ ) {
-        $data[ 'table_1' ][ $i ] = array( 'label' => $labels[ $i ], 'mean_value' => $tables[ 'table_1' ][ 'datasets' ][ 0 ][ 'data' ][ $i ] );
-      }
-      $tpl = new Template( 'latex_tables' );
+      $data = array( 'rows' => $db->getOverviewTable( 'doc2pub', 'doc2pub' ) );
+      $tpl = new Template( 'latex_overview_table' );
       return $tpl->render( array( $data ) );
     }
 
