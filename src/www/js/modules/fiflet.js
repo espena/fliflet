@@ -16,50 +16,62 @@ define( [
   var charts = [],
       $links = $( '<ul></ul>' );
 
-  var originalHorizontalBarDraw = Chart.controllers.horizontalBar.prototype.draw;
+  var
+    originalHorizontalBarDraw = Chart.controllers.horizontalBar.prototype.draw,
+    originalLineChartDraw = Chart.controllers.line.prototype.draw;
 
   Chart.controllers.horizontalBar = Chart.controllers.horizontalBar.extend( { draw: drawHorizontalBar } );
+  Chart.controllers.line = Chart.controllers.line.extend( { draw: drawLineChart } );
 
   function drawHorizontalBar() {
-
     originalHorizontalBarDraw.apply( this, arguments );
-
     var
       ctx = this.chart.chart.ctx,
-      vm = this.chart.view,
-      me = this,
-      ds = this.chart.config.data.datasets,
-      easing = arguments[ 0 ] || 1,
-      meta = me.getMeta(),
-      data = meta.data,
-      xScale = me.getScaleForId( meta.xAxisID );
-
-    var
-      i,
-      milestones = this.chart.config.milestones || [];
-
-    for( i = 0; i < milestones.length; i++ ) {
-      var m = milestones[ i ];
-      var x = xScale.getPixelForValue( m.value );
-      ctx.strokeStyle = m.color;
-      ctx.fillStyle = m.color;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo( x,  this.chart.chartArea.top - 20 );
-      ctx.lineTo( x, this.chart.chartArea.bottom + 5 );
-      ctx.stroke();
-      ctx.textAlign = 'end';
-      ctx.fillText( m.label, x - 7, this.chart.chartArea.top - 25 );
+      data = this.getMeta().data;
+    if( typeof this.chart.config.milestones !== 'undefined' ) {
+      drawMilestones( this );
     }
-
     ctx.fillStyle = '#333333';
     ctx.textAlign = 'start';
     for( var k in data ) {
       if( data.hasOwnProperty( k ) ) {
-        var bar = data[ k ];
-        var val = Math.round( me.getDataset().data[ k ] * 10 ) / 10;
+        var
+          bar = data[ k ],
+          val = Math.round( this.getDataset().data[ k ] * 10 ) / 10;
         ctx.fillText( val, bar._model.x + 5, bar._model.y - 5 );
       }
+    }
+  }
+
+  function drawLineChart() {
+    originalLineChartDraw.apply( this, arguments );
+    if( typeof this.chart.config.milestones !== 'undefined' ) {
+      drawMilestones( this );
+    }
+  }
+
+  function drawMilestones( me ) {
+    var
+      chart = me.chart,
+      ctx = chart.chart.ctx,
+      meta = me.getMeta(),
+      xScale = me.getScaleForId( meta.xAxisID ),
+      yScale = me.getScaleForId( meta.yAxisID ),
+      i;
+    for( i = 0; i < chart.config.milestones.length; i++ ) {
+      var
+        m = chart.config.milestones[ i ],
+        x = xScale.getPixelForValue( m.xvalue ),
+        y = yScale.getPixelForValue( m.yvalue );
+      ctx.strokeStyle = m.color;
+      ctx.fillStyle = m.color;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo( x,  y - 5 );
+      ctx.lineTo( x, chart.chartArea.bottom + 6 );
+      ctx.stroke();
+      ctx.textAlign = 'end';
+      ctx.fillText( m.label, x - 7, y - 13 );
     }
   }
 

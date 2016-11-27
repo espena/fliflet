@@ -444,7 +444,7 @@ BEGIN
               WHERE
                 ( _id_supplier = 0 OR _id_supplier LIKE id_supplier )
               AND
-                ( _period = period OR ( _period = '0000-00' AND period >= '2015-01' AND period < '2016-07-01' ) )
+                ( _period = period OR ( _period = '0000-00' AND period >= '2015-01' AND period <= '2016-08' ) )
               AND
                 ( _direction = direction OR _direction = 'IO' );
 
@@ -544,7 +544,7 @@ BEGIN
     datediff_abs_doc2jour = datediff( _jour_date, _doc_date ),
     datediff_abs_jour2pub = datediff( _pub_date, _jour_date ),
     datediff_abs_doc2pub = datediff( _pub_date, _doc_date ),
-    datediff_workdays_doc2jour = datediff_workdays( _jour_date, doc_date ),
+    datediff_workdays_doc2jour = datediff_workdays( _jour_date, _doc_date ),
     datediff_workdays_jour2pub = datediff_workdays( _pub_date, _jour_date ),
     datediff_workdays_doc2pub = datediff_workdays( _pub_date, _doc_date )
   WHERE

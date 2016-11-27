@@ -1,37 +1,25 @@
-DROP PROCEDURE IF EXISTS getOverviewTable;
+UPDATE
+  journal
+SET
+  datediff_abs_doc2jour = NULL,
+  datediff_abs_jour2pub = NULL,
+  datediff_abs_doc2pub = NULL,
+  datediff_workdays_doc2jour = NULL,
+  datediff_workdays_jour2pub = NULL,
+  datediff_workdays_doc2pub = NULL;
 
-DELIMITER //
-
-CREATE PROCEDURE getOverviewTable(
-  _dataset CHAR( 10 ),
-  _sortcrit VARCHAR( 10 ),
-  _direction ENUM( 'IO', 'I', 'O' ) )
-BEGIN
-
-  SET @sql = CONCAT( '
-    SELECT
-      id_supplier,
-      name_supplier AS label_longname,
-      abbr_supplier AS label, ',
-      'ROUND(mean_', _dataset, ', 2) AS mean, ',
-      'ROUND(mean_abs_', _dataset, ', 2) AS mean_abs, ',
-      'median_', _dataset, ' AS median, ',
-      'median_abs_', _dataset, ' AS median_abs
-    FROM
-      statistics
-    WHERE
-      period LIKE \'0000-00\'
-    AND
-      id_supplier > 0
-    AND
-      ( direction = \'IO\' OR direction = \'', _direction, '\' )
-    ORDER BY
-      mean_', _sortcrit, ' DESC' );
-
-  PREPARE stm FROM @sql;
-  EXECUTE stm;
-  DEALLOCATE PREPARE stm;
-
-END//
-
-DELIMITER ;
+UPDATE
+  journal
+SET
+  datediff_abs_doc2jour = datediff( jour_date, doc_date ),
+  datediff_abs_jour2pub = datediff( pub_date, jour_date ),
+  datediff_abs_doc2pub = datediff( pub_date, doc_date ),
+  datediff_workdays_doc2jour = datediff_workdays( jour_date, doc_date ),
+  datediff_workdays_jour2pub = datediff_workdays( pub_date, jour_date ),
+  datediff_workdays_doc2pub = datediff_workdays( pub_date, doc_date )
+WHERE
+  pub_date <= CURRENT_DATE()
+AND
+  jour_date <= pub_date
+AND
+  doc_date <= jour_date;

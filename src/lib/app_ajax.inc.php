@@ -24,6 +24,20 @@
     public function doPostOperations() {
       $this->mApp->doPostOperations();
     }
+    private function addMilestones( &$jsonData ) {
+      $milestoneXValues = explode( '|', $_GET[ 'milestoneXValue' ] );
+      $milestoneLabels = explode( '|', $_GET[ 'milestoneLabel' ] );
+      $milestoneYValues  = explode( '|', empty( $_GET[ 'milestoneYValue' ] ) ? '' : $_GET[ 'milestoneYValue' ] );
+      $jsonData[ 'milestones' ] = array();
+      for( $i = 0; $i < count( $milestoneLabels ); $i++ ) {
+        array_push( $jsonData[ 'milestones' ],
+          array(
+            'color'  => '#444444',
+            'label'  => $milestoneLabels[ $i ],
+            'xvalue'  => $milestoneXValues[ $i ],
+            'yvalue' => $milestoneYValues[ $i ] ) );
+      }
+    }
     private function callReflectedGetJson( $param ) {
       $method = debug_backtrace()[ 1 ][ 'function' ] . ( empty( $_GET[ $param ] ) ? 'Error' : preg_replace( '/[^a-z0-9]+/i', '', ucfirst( $_GET[ $param ] ) ) );
       if( method_exists( $this, $method ) ) {
@@ -49,6 +63,13 @@
         $jsonData = $this->callReflectedGetJson( 'dataset' );
       }
       $jsonData[ 'type' ] = 'line';
+      if(
+        isset( $_GET[ 'milestoneXValue' ] ) &&
+        isset( $_GET[ 'milestoneYValue' ] ) &&
+        isset( $_GET[ 'milestoneLabel' ] )
+      ) {
+        $this->addMilestones( $jsonData );
+      }
       return $jsonData;
     }
     private function getJsonTimelineDoc2Jour() {
@@ -118,8 +139,12 @@
         $jsonData = $this->callReflectedGetJson( 'dataset' );
       }
       $jsonData[ 'type' ] = 'horizontalBar';
-      if( !empty( $_GET[ 'milestoneValue' ] ) && !empty( $_GET[ 'milestoneLabel' ] ) ) {
-        $jsonData[ 'milestones' ] = array( array( 'value' => $_GET[ 'milestoneValue' ], 'color' => '#444444', 'label' => $_GET[ 'milestoneLabel' ] ) );
+      if(
+        isset( $_GET[ 'milestoneXValue' ] ) &&
+        isset( $_GET[ 'milestoneYValue' ] ) &&
+        isset( $_GET[ 'milestoneLabel' ] )
+      ) {
+        $this->addMilestones( $jsonData );
       }
       return $jsonData;
     }
@@ -182,7 +207,10 @@
         'scales' => array(
           'xAxes' => array(
             array(
-              'ticks' => array( 'beginAtZero' => TRUE )
+              'ticks' => array(
+                'beginAtZero' => TRUE,
+                'suggestedMax' => 45
+              )
             ) ) ) );
       return $jsonData;
     }
