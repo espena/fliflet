@@ -38,7 +38,7 @@ define( [
         var
           bar = data[ k ],
           val = Math.round( this.getDataset().data[ k ] * 10 ) / 10;
-        ctx.fillText( val, bar._model.x + 5, bar._model.y - 5 );
+        ctx.fillText( val, bar._model.x + 5, bar._model.y - 7 );
       }
     }
   }
@@ -81,7 +81,7 @@ define( [
       userDefinedScale = Chart.scaleService.getScaleConstructor( "linear" ).extend( {
         buildTicks: function() {
           this.min = 0;
-          this.max = 140;
+          this.max = 80;
           var stepWidth = 10;
           this.ticks = [];
           for( var tickValue = this.min; tickValue <= this.max; tickValue += stepWidth ) {
@@ -105,7 +105,7 @@ define( [
       userDefinedScaleSmall = Chart.scaleService.getScaleConstructor( "linear" ).extend( {
         buildTicks: function() {
           this.min = 0;
-          this.max = 140;
+          this.max = 80;
           var stepWidth = 20;
           this.ticks = [];
           for( var tickValue = this.min; tickValue <= this.max; tickValue += stepWidth ) {

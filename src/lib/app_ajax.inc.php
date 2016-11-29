@@ -32,7 +32,7 @@
       for( $i = 0; $i < count( $milestoneLabels ); $i++ ) {
         array_push( $jsonData[ 'milestones' ],
           array(
-            'color'  => '#444444',
+            'color'  => '#ff0000',
             'label'  => $milestoneLabels[ $i ],
             'xvalue'  => $milestoneXValues[ $i ],
             'yvalue' => $milestoneYValues[ $i ] ) );
@@ -160,6 +160,9 @@
     private function getJsonOverviewDoc2jour() {
       return $this->callReflectedGetJson( 'aggregate' );
     }
+    private function getJsonOverviewDoc2jourDoc2pub() {
+      return $this->callReflectedGetJson( 'aggregate' );
+    }
     private function getJsonOverviewJour2pub() {
       return $this->callReflectedGetJson( 'aggregate' );
     }
@@ -171,6 +174,12 @@
     }
     private function getJsonOverviewDoc2jourMedian() {
       return $this->getOverview( 'doc2jour', 'median' );
+    }
+    private function getJsonOverviewDoc2jourDoc2pubMean() {
+      return $this->getOverview( array( 'doc2jour', 'doc2pub' ), 'mean' );
+    }
+    private function getJsonOverviewDoc2jourDoc2pubMedian() {
+      return $this->getOverview( array( 'doc2jour', 'doc2pub' ), 'median' );
     }
     private function getJsonOverviewDoc2jourMode() {
       return $this->getOverview( 'doc2jour', 'mode_v' );
@@ -199,7 +208,17 @@
       $direction = empty( $_GET[ 'direction' ] ) ? 'IO' : $_GET[ 'direction' ];
       $sortcrit = empty( $_GET[ 'order' ] ) ? 'doc2pub' : preg_replace( '/[^a-z0-9]/', '', $_GET[ 'order' ] );
       $jsonData = array();
-      $jsonData[ 'data' ] = $db->getOverView( $dataset, $aggregate, $sortcrit, $direction );
+      if( is_array( $dataset ) ) {
+        $matrices = $db->getOverView( $dataset[ 0 ], $aggregate, $sortcrit, $direction );
+        for( $i = 1; $i < count( $dataset ); $i++ ) {
+          $tmp = $db->getOverView( $dataset[ $i ], $aggregate, $sortcrit, $direction );
+          array_push( $matrices[ 'datasets' ], $tmp[ 'datasets' ][ 0 ] );
+        }
+      }
+      else {
+        $matrices = $db->getOverView( $dataset, $aggregate, $sortcrit, $direction );
+      }
+      $jsonData[ 'data' ] = $matrices;
       $jsonData[ 'options' ] = array(
         'title' => array(
           'display' => TRUE,

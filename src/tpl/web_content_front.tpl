@@ -37,7 +37,7 @@
         data-description="Justis- og beredskapsdepartementet, utvkiling over tid."
         data-milestone-label="Styringsdialog-møte|Asylbarnsaken|Kritikk fra arkivverket"
         data-milestone-x-value="2014-06|2014-12|2016-07"
-        data-milestone-y-value="100|100|100"
+        data-milestone-y-value="70|70|70"
         width="900"
         height="450">
       </canvas>
@@ -53,7 +53,7 @@
         data-description="Justis- og beredskapsdepartementet, utvkiling over tid."
         data-milestone-label="Styringsdialog-møte|Asylbarnsaken|Kritikk fra arkivverket"
         data-milestone-x-value="2014-06|2014-12|2016-07"
-        data-milestone-y-value="100|100|100"
+        data-milestone-y-value="70|70|70"
         width="900"
         height="450">
       </canvas>
@@ -79,6 +79,20 @@
         data-milestone-x-value="4"
         data-milestone-y-value="JD"
         data-description="Gjennomsnittlig ant. virkedager mellom dokumentdato og publisering, januar 2015 - august 2016"
+        width="900"
+        height="450">
+      </canvas>
+
+      <canvas
+        class="chart overview"
+        data-ajax="overview"
+        data-aggregate="mean"
+        data-dataset="doc2jourDoc2pub"
+        data-order="doc2pub"
+        data-milestone-label="4 dager"
+        data-milestone-x-value="4"
+        data-milestone-y-value="JD"
+        data-description="Gjennomsnittlig ant. virkedager mellom dokumentdato, journalføring og publisering, januar 2015 - august 2016"
         width="900"
         height="450">
       </canvas>
