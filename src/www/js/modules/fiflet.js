@@ -2,14 +2,12 @@ define( [
   'jquery',
   'mustache',
   'chart',
-  'jqcloud',
   'text!templates/overview_tooltip_body.tmpl.html',
   'text!templates/overview_tooltip_footer.tmpl.html'
 ], function(
     $,
     mustache,
     Chart,
-    jqcloud,
     tmplOverviewTooltipBody,
     tmplOverviewTooltipFooter ) {
 
@@ -20,6 +18,7 @@ define( [
     originalHorizontalBarDraw = Chart.controllers.horizontalBar.prototype.draw,
     originalLineChartDraw = Chart.controllers.line.prototype.draw;
 
+  Chart.defaults.global.defaultFontSize = 24;
   Chart.controllers.horizontalBar = Chart.controllers.horizontalBar.extend( { draw: drawHorizontalBar } );
   Chart.controllers.line = Chart.controllers.line.extend( { draw: drawLineChart } );
 
@@ -38,7 +37,7 @@ define( [
         var
           bar = data[ k ],
           val = Math.round( this.getDataset().data[ k ] * 10 ) / 10;
-        ctx.fillText( val, bar._model.x + 5, bar._model.y - 7 );
+        ctx.fillText( val, bar._model.x + 5, bar._model.y - 13 );
       }
     }
   }
@@ -71,7 +70,7 @@ define( [
       ctx.lineTo( x, chart.chartArea.bottom + 6 );
       ctx.stroke();
       ctx.textAlign = 'end';
-      ctx.fillText( m.label, x - 7, y - 13 );
+      ctx.fillText( m.label, x - 7, y - 26 );
     }
   }
 

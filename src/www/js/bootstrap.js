@@ -5,14 +5,13 @@ requirejs.config( {
     'mustache': 'https://cdnjs.cloudflare.com/ajax/libs/mustache.js/2.2.1/mustache.min',
     'isotope':  'https://npmcdn.com/isotope-layout@3.0/dist/isotope.pkgd.min',
     'chart':    'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.2.2/Chart.bundle',
-  //'chart':    'lib/chartjs/Chart.bundle',
-    'jqcloud':  'lib/jqcloud/jqcloud.min',
+    'fabricjs': 'http://cdnjs.cloudflare.com/ajax/libs/fabric.js/1.7.2/fabric.min',
     'text':     'https://cdnjs.cloudflare.com/ajax/libs/require-text/2.0.12/text.min'
   },
   shim: {
-    jqcloud: {
-      deps: [ 'jquery' ],
-      exports: 'jqcloud'
+    fabricjs: {
+      deps: [ ],
+      exports: 'fabric'
     }
   }
 } );

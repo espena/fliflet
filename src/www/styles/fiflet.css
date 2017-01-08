@@ -11,11 +11,11 @@ article h1 {
 }
 section.individual,
 section.common {
-  max-width: 900px;
-  min-width: 480px;
+  max-width: 1800px;
+  min-width: 1800px;
 }
 section.common .small {
-  width: 450px;
+  width: 900px;
 }
 figure {
   margin: 30px 0;
