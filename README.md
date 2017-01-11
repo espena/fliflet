@@ -1,4 +1,4 @@
-# fiflet
+# fliflet
 Statistics tool for mining into Electronic Public Records of Norway.
 
 This PHP applications is designed to run both as a client application (invoked
