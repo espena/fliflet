@@ -1,6 +1,3 @@
 src/cache
-src/sql/fiflet_backup.sql
-src/sql/fiflet_backup_pod.sql
 terminator
-data
 logs
