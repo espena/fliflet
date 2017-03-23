@@ -1,2 +1,2 @@
-Fiflet statistics tool.
-Copyright (c) 2016: Espen Andersen
+Fliflet statistics tool.
+Copyright (c) 2017: Espen Andersen
