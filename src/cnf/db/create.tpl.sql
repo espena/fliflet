@@ -444,7 +444,7 @@ BEGIN
               WHERE
                 ( _id_supplier = 0 OR _id_supplier LIKE id_supplier )
               AND
-                ( _period = period OR ( _period = '0000-00' AND period >= '2015-01' AND period <= '2016-08' ) )
+                ( _period = period OR ( _period = '0000-00' AND period >= '2015-01' AND period <= '2017-02' ) )
               AND
                 ( _direction = direction OR _direction = 'IO' );
 
@@ -758,7 +758,7 @@ BEGIN
     AND
       period >= \'2014-01\'
     AND
-      period <= \'2016-08\'
+      period <= \'2017-02\'
     AND
       doc_count > 100
     AND
