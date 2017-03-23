@@ -7,7 +7,7 @@
     <figure>
       <canvas class="item chart timeline" data-chart-type="timeline" data-supplier="%%id_supplier%%" width="400" height="200"></canvas>
       <figcaption>
-        <strong>UTVIKLING OVER TID:</strong> Mådedsvis utvkiling i antall dager,
+        <strong>UTVIKLING OVER TID:</strong> Mådedsvis utvikling i antall dager,
         dokumentdato-journaldato-publiseringsdato for %%navn%%.
       </figcaption>
     </figure>

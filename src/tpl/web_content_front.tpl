@@ -9,7 +9,7 @@
         data-supplier="164"
         data-direction="IO"
         data-scale="fifletY"
-        data-description="Politidirektoratet, utvkiling over tid (gjennomsnitt)."
+        data-description="Politidirektoratet, utvikling over tid (gjennomsnitt)."
         width="1800"
         height="900">
       </canvas>
@@ -21,7 +21,7 @@
         data-supplier="164"
         data-direction="IO"
         data-scale="fifletY"
-        data-description="Politidirektoratet, utvkiling over tid (median)."
+        data-description="Politidirektoratet, utvikling over tid (median)."
         width="1800"
         height="900">
       </canvas -->
@@ -34,7 +34,7 @@
         data-direction="IO"
         data-suffix="with_milestones"
         data-scale="fifletY"
-        data-description="Justis- og beredskapsdepartementet, utvkiling over tid."
+        data-description="Justis- og beredskapsdepartementet, utvikling over tid."
         data-milestone-label="Styringsdialog-møte|Asylbarnsaken|Kritikk fra arkivverket"
         data-milestone-x-value="2014-06|2014-12|2016-07"
         data-milestone-y-value="70|70|70"
@@ -50,7 +50,7 @@
         data-direction="IO"
         data-suffix="with_milestones"
         data-scale="fifletY"
-        data-description="Justis- og beredskapsdepartementet, utvkiling over tid."
+        data-description="Justis- og beredskapsdepartementet, utvikling over tid."
         data-milestone-label="Styringsdialog-møte|Asylbarnsaken|Kritikk fra arkivverket"
         data-milestone-x-value="2014-06|2014-12|2016-07"
         data-milestone-y-value="70|70|70"
